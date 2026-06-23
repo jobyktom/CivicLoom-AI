@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@theme inline { --font-sans: "Inter", Arial, sans-serif; }
+* { border-color: rgb(226 232 240); }
+body { min-height:100vh; }

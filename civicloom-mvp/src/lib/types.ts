@@ -1,0 +1,2 @@
+export type CensusMetrics = { population:number; medianIncome:number; medianAge:number; employedPct:number; housingUnits:number; ownerPct:number; bachelorPct:number; commuteDrivePct:number };
+export type Report = { id:string; businessType:string; locationName:string; geographyType:"place"|"county"; stateCode?:string; countyCode?:string; placeCode?:string; radius:number; targetCustomer:string; reportType:string; opportunityScore:number; metrics:CensusMetrics; aiSummary:string; riskSummary:string; recommendation:string; createdAt:string };
