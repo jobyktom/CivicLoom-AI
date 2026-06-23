@@ -1,0 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+const priceMap:Record<string,string|undefined>={starter:process.env.STRIPE_STARTER_PRICE_ID,pro:process.env.STRIPE_PRO_PRICE_ID,agency:process.env.STRIPE_AGENCY_PRICE_ID};
+export async function POST(request:NextRequest){const {plan}=await request.json();const price=priceMap[plan];if(!process.env.STRIPE_SECRET_KEY||!price)return NextResponse.json({error:"Stripe is not configured for this plan yet."},{status:400});const stripe=new Stripe(process.env.STRIPE_SECRET_KEY);const origin=request.headers.get("origin")||"http://localhost:3000";const session=await stripe.checkout.sessions.create({mode:"subscription",line_items:[{price,quantity:1}],success_url:`${origin}/dashboard?checkout=success`,cancel_url:`${origin}/pricing?checkout=cancelled`,allow_promotion_codes:true});return NextResponse.json({url:session.url});}
