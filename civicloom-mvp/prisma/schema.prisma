@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id               String    @id @default(cuid()) @db.VarChar(64)
+  email            String    @unique @db.VarChar(255)
+  name             String?   @db.VarChar(255)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  emailVerified    DateTime? @map("email_verified")
+  image            String?   @db.VarChar(512)
+  stripeCustomerId String?   @unique @map("stripe_customer_id") @db.VarChar(255)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  accounts      Account[]
+  sessions      Session[]
+  reports       Report[]
+  subscriptions Subscription[]
+  usageEvents   UsageEvent[]
+  watchlists    WatchlistLocation[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid()) @db.VarChar(64)
+  userId            String  @map("user_id") @db.VarChar(64)
+  type              String  @db.VarChar(255)
+  provider          String  @db.VarChar(255)
+  providerAccountId String  @map("provider_account_id") @db.VarChar(255)
+  refreshToken      String? @map("refresh_token") @db.Text
+  accessToken       String? @map("access_token") @db.Text
+  expiresAt         Int?    @map("expires_at")
+  tokenType         String? @map("token_type") @db.VarChar(255)
+  scope             String? @db.VarChar(255)
+  idToken           String? @map("id_token") @db.Text
+  sessionState      String? @map("session_state") @db.VarChar(255)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid()) @db.VarChar(64)
+  sessionToken String   @unique @map("session_token") @db.VarChar(255)
+  userId       String   @map("user_id") @db.VarChar(64)
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(255)
+  token      String   @unique @db.VarChar(255)
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Report {
+  id               String   @id @db.VarChar(64)
+  userId           String?  @map("user_id") @db.VarChar(64)
+  businessType     String   @map("business_type") @db.VarChar(255)
+  locationName     String   @map("location_name") @db.VarChar(255)
+  geographyType    String   @default("county") @map("geography_type") @db.VarChar(32)
+  stateCode        String?  @map("state_code") @db.VarChar(8)
+  countyCode       String?  @map("county_code") @db.VarChar(8)
+  placeCode        String?  @map("place_code") @db.VarChar(16)
+  radius           Int?
+  targetCustomer   String?  @map("target_customer") @db.VarChar(255)
+  reportType       String?  @map("report_type") @db.VarChar(120)
+  opportunityScore Int?     @map("opportunity_score")
+  aiSummary        String?  @map("ai_summary") @db.Text
+  riskSummary      String?  @map("risk_summary") @db.Text
+  recommendation   String?  @db.Text
+  reportJson       Json?    @map("report_json")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user          User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  locations     ReportLocation[]
+  censusMetrics CensusMetric[]
+  aiSummaries   AiSummary[]
+  usageEvents   UsageEvent[]
+
+  @@index([userId, createdAt], map: "idx_reports_user_created")
+  @@map("reports")
+}
+
+model ReportLocation {
+  id            BigInt   @id @default(autoincrement())
+  reportId      String   @map("report_id") @db.VarChar(64)
+  locationName  String   @map("location_name") @db.VarChar(255)
+  geographyType String   @map("geography_type") @db.VarChar(32)
+  stateCode     String?  @map("state_code") @db.VarChar(8)
+  countyCode    String?  @map("county_code") @db.VarChar(8)
+  placeCode     String?  @map("place_code") @db.VarChar(16)
+  radius        Int?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "idx_report_locations_report")
+  @@map("report_locations")
+}
+
+model CensusMetric {
+  id          BigInt   @id @default(autoincrement())
+  reportId    String   @map("report_id") @db.VarChar(64)
+  metricName  String   @map("metric_name") @db.VarChar(120)
+  metricValue Float?   @map("metric_value")
+  sourceYear  Int?     @map("source_year")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "idx_census_metrics_report")
+  @@map("census_metrics")
+}
+
+model AiSummary {
+  id               BigInt   @id @default(autoincrement())
+  reportId         String   @map("report_id") @db.VarChar(64)
+  executiveSummary String?  @map("executive_summary") @db.Text
+  risks            String?  @db.Text
+  idealCustomer    String?  @map("ideal_customer") @db.Text
+  marketingAngle   String?  @map("marketing_angle") @db.Text
+  recommendation   String?  @db.Text
+  structuredJson   Json?    @map("structured_json")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "idx_ai_summaries_report")
+  @@map("ai_summaries")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid()) @db.VarChar(64)
+  userId               String    @map("user_id") @db.VarChar(64)
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripePriceId        String?   @map("stripe_price_id") @db.VarChar(255)
+  plan                 String    @default("free") @db.VarChar(64)
+  status               String    @default("inactive") @db.VarChar(64)
+  reportLimit          Int       @default(1) @map("report_limit")
+  currentPeriodStart   DateTime? @map("current_period_start")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  cancelAtPeriodEnd    Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model UsageEvent {
+  id        BigInt   @id @default(autoincrement())
+  userId    String?  @map("user_id") @db.VarChar(64)
+  reportId  String?  @map("report_id") @db.VarChar(64)
+  eventType String   @map("event_type") @db.VarChar(80)
+  plan      String?  @db.VarChar(64)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  report Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([reportId])
+  @@map("usage_events")
+}
+
+model BusinessTemplate {
+  id                String   @id @default(cuid()) @db.VarChar(64)
+  slug              String   @unique @db.VarChar(120)
+  name              String   @db.VarChar(255)
+  description       String?  @db.Text
+  demandWeight      Int      @default(35) @map("demand_weight")
+  incomeWeight      Int      @default(25) @map("income_weight")
+  customerFitWeight Int      @default(25) @map("customer_fit_weight")
+  riskWeight        Int      @default(15) @map("risk_weight")
+  assumptions       Json?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("business_templates")
+}
+
+model WatchlistLocation {
+  id            String    @id @default(cuid()) @db.VarChar(64)
+  userId        String    @map("user_id") @db.VarChar(64)
+  businessType  String    @map("business_type") @db.VarChar(255)
+  locationName  String    @map("location_name") @db.VarChar(255)
+  geographyType String    @default("county") @map("geography_type") @db.VarChar(32)
+  stateCode     String?   @map("state_code") @db.VarChar(8)
+  countyCode    String?   @map("county_code") @db.VarChar(8)
+  placeCode     String?   @map("place_code") @db.VarChar(16)
+  lastScore     Int?      @map("last_score")
+  lastCheckedAt DateTime? @map("last_checked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("watchlist_locations")
+}

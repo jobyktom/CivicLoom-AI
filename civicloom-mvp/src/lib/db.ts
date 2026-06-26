@@ -3,22 +3,21 @@ import mysql, { type Pool } from "mysql2/promise";
 let pool: Pool | null = null;
 
 export function getDbConfigMode() {
-  if (process.env.DATABASE_URL) return "DATABASE_URL";
   if (process.env.DB_HOST) return "DB_*";
+  if (process.env.DATABASE_URL) return "DATABASE_URL";
   return "none";
 }
 
 export function hasDatabaseConfig() {
-  return Boolean(process.env.DATABASE_URL || process.env.DB_HOST);
+  return Boolean(process.env.DB_HOST || process.env.DATABASE_URL);
 }
 
 export function getDbPool() {
   if (!hasDatabaseConfig()) return null;
 
   if (!pool) {
-    pool = process.env.DATABASE_URL
-      ? mysql.createPool(process.env.DATABASE_URL)
-      : mysql.createPool({
+    pool = process.env.DB_HOST
+      ? mysql.createPool({
           host: process.env.DB_HOST,
           port: Number(process.env.DB_PORT || 3306),
           database: process.env.DB_NAME,
@@ -27,7 +26,8 @@ export function getDbPool() {
           waitForConnections: true,
           connectionLimit: 5,
           namedPlaceholders: true,
-        });
+        })
+      : mysql.createPool(process.env.DATABASE_URL!);
   }
 
   return pool;
