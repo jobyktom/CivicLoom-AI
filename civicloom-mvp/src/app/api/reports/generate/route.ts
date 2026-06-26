@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
     const state = resolved?.state || stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
     let metrics = null;
     let county: string | undefined = resolved?.county;
+    let place: string | undefined = resolved?.place;
 
-    if (county) {
-      metrics = county ? await getCensusMetrics({ state, county }) : null;
+    if (county || place) {
+      metrics = await getCensusMetrics({ state, county, place });
     }
 
     const base = {
@@ -40,9 +41,10 @@ export async function POST(request: NextRequest) {
       id: crypto.randomUUID(),
       businessType: body.businessType || demoReport.businessType,
       locationName: body.location || demoReport.locationName,
-      geographyType: "county" as const,
+      geographyType: place ? ("place" as const) : ("county" as const),
       stateCode: state,
       countyCode: county,
+      placeCode: place,
       targetCustomer: body.targetCustomer || demoReport.targetCustomer,
       radius: Number(body.radius) || 3,
       reportType: body.reportType || demoReport.reportType,
