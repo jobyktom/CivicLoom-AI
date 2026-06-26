@@ -1,7 +1,115 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, BrainCircuit, MapPin, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, MapPin, ShieldCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-const benefits=[[UsersRound,"Understand your customers","Access rich demographic, lifestyle and spending insights to validate demand."],[MapPin,"Compare locations","Side-by-side market comparisons make the next move feel obvious."],[BarChart3,"Export investor-ready reports","Turn your data into a polished, decision-ready narrative."]];
-export default function Home(){return <main><section className="relative overflow-hidden px-6 pb-20 pt-16 lg:px-10 lg:pb-28 lg:pt-24"><div className="mx-auto grid max-w-[1400px] items-center gap-12 lg:grid-cols-[.98fr_1.02fr]"><div className="relative z-10"><p className="mb-7 text-sm font-bold uppercase tracking-[.18em] text-[#1769ff]">Local intelligence, clearly delivered</p><h1 className="max-w-[710px] text-5xl font-bold leading-[.98] tracking-[-.06em] text-[#061535] sm:text-6xl lg:text-[76px]">Find the best location for your business with <span className="text-[#1769ff]">AI-powered</span> local data.</h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-500">Generate a local market report in 60 seconds using Census data, demographics and AI reasoning.</p><div className="mt-9 flex flex-col gap-4 sm:flex-row"><Button asChild size="lg" className="h-14 brand-gradient px-8 text-base blue-shadow"><Link href="/report/new">Generate free report <ArrowRight className="ml-2"/></Link></Button><Button asChild size="lg" variant="outline" className="h-14 border-2 border-[#1769ff] px-8 text-base text-[#1769ff] hover:bg-blue-50"><Link href="/report/demo-1">View sample report</Link></Button></div><div className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500"><span className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-[#1769ff]"/>No credit card required</span><span>•</span><span>Free reports</span><span>•</span><span>Privacy first</span></div></div><HeroMap/></div></section><section className="bg-[#f7f9fe] px-6 py-16 lg:px-10"><div className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-3">{benefits.map(([Icon,title,body])=><div key={title as string} className="rounded-[22px] border border-[#dbe4f5] bg-white p-8 shadow-[0_12px_30px_rgba(26,62,125,.05)]"><div className="grid h-14 w-14 place-items-center rounded-2xl border border-blue-200 bg-blue-50 text-[#1769ff]"><Icon className="h-7 w-7"/></div><h2 className="mt-6 text-xl font-bold tracking-tight text-[#061535]">{title as string}</h2><p className="mt-2 max-w-sm leading-7 text-slate-500">{body as string}</p></div>)}</div></section></main>}
-function HeroMap(){return <div className="map-grid relative min-h-[510px] overflow-hidden rounded-[28px] border border-[#e0e7f4] bg-[#f8fbff] shadow-[0_25px_60px_rgba(28,61,120,.10)]"><div className="absolute left-[23%] top-[23%] h-[260px] w-[360px] rounded-[46%] border-[3px] border-[#1769ff] bg-blue-100/35"/><Pin className="left-[47%] top-[43%]" big/><Pin className="right-[12%] top-[48%]"/><Pin className="right-[39%] top-[15%]"/><Float className="left-[7%] top-[6%]" title="Market potential" value="High" foot="Score 85/100"/><Float className="right-[5%] top-[13%]" title="Median household income" value="$78,442" foot="+12% vs. city avg"/><Float className="bottom-[12%] left-[9%]" title="Population" value="24,391" foot="+8% vs. city avg"/><Float className="bottom-[7%] right-[8%]" title="Businesses" value="1,642" foot="+15% vs. city avg"/></div>}
-function Pin({className,big}:{className:string;big?:boolean}){return <span className={`absolute grid place-items-center rounded-full bg-[#1769ff] text-white shadow-lg shadow-blue-500/40 ${big?'h-14 w-14':'h-8 w-8'} ${className}`}><MapPin className={big?'h-7 w-7':'h-4 w-4'}/></span>};function Float({className,title,value,foot}:{className:string;title:string;value:string;foot:string}){return <div className={`absolute rounded-2xl border border-[#dbe4f5] bg-white/95 px-5 py-4 shadow-xl shadow-blue-950/10 ${className}`}><p className="text-xs font-medium text-slate-600">{title}</p><p className="mt-2 text-2xl font-bold tracking-tight text-[#1769ff]">{value}</p><p className="mt-1 text-xs font-medium text-emerald-600">{foot}</p></div>}
+
+const benefits = [
+  [UsersRound, "Know the local customer", "Demographics, income, housing and commute patterns translated into a practical market view."],
+  [MapPin, "Shortlist stronger locations", "Compare places with the same scoring model so teams can discuss trade-offs clearly."],
+  [FileText, "Create decision-ready reports", "Export a concise narrative your operator, investor or client can understand quickly."],
+] as const;
+
+const sampleRows = [
+  ["Population", "967,862"],
+  ["Median household income", "$89,415"],
+  ["Median age", "35.1"],
+  ["Employment", "67%"],
+] as const;
+
+export default function Home() {
+  return (
+    <main>
+      <section className="border-b border-[#ded8cb] bg-[#faf9f6] px-6 py-16 lg:px-10 lg:py-24">
+        <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-[1fr_.9fr]">
+          <div>
+            <p className="mb-6 text-sm font-bold uppercase tracking-[.18em] text-[#285f8f]">Local market intelligence</p>
+            <h1 className="max-w-[760px] text-5xl font-semibold leading-[1.02] tracking-[-.055em] text-[#102033] sm:text-6xl lg:text-[72px]">
+              Pick better business locations with clear local data.
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600">
+              CivicLoom AI turns Census data, scoring logic and plain-English recommendations into a market report your team can act on.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="h-12 bg-[#18324a] px-7 text-base text-white hover:bg-[#102033]">
+                <Link href="/report/new">
+                  Generate free report <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 border-[#bdb5a7] bg-transparent px-7 text-base text-[#18324a] hover:bg-[#f1eee8]">
+                <Link href="/report/demo-1">View sample report</Link>
+              </Button>
+            </div>
+            <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-[#285f8f]" />
+                No credit card required
+              </span>
+              <span>·</span>
+              <span>Live ACS data when available</span>
+              <span>·</span>
+              <span>Transparent scoring</span>
+            </div>
+          </div>
+          <SampleReportCard />
+        </div>
+      </section>
+
+      <section className="bg-white px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[1320px]">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold uppercase tracking-[.18em] text-[#285f8f]">Built for local decisions</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#102033]">A quieter workflow for high-stakes location choices.</h2>
+          </div>
+          <div className="mt-9 grid gap-5 lg:grid-cols-3">
+            {benefits.map(([Icon, title, body]) => (
+              <div key={title} className="rounded-2xl border border-[#ded8cb] bg-[#faf9f6] p-7">
+                <div className="grid h-12 w-12 place-items-center rounded-xl border border-[#cfc7b9] bg-white text-[#285f8f]">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-6 text-xl font-semibold tracking-tight text-[#102033]">{title}</h3>
+                <p className="mt-3 leading-7 text-slate-600">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function SampleReportCard() {
+  return (
+    <div className="rounded-[24px] border border-[#d6cebf] bg-white p-6 shadow-[0_18px_45px_rgba(16,32,51,.08)]">
+      <div className="flex items-start justify-between gap-4 border-b border-[#ded8cb] pb-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[.16em] text-slate-500">Sample report</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#102033]">Specialty coffee shop</h2>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+            <MapPin className="h-4 w-4 text-[#285f8f]" />
+            Austin, Texas
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#ded8cb] bg-[#faf9f6] px-4 py-3 text-right">
+          <p className="text-xs text-slate-500">Opportunity</p>
+          <p className="text-3xl font-semibold text-[#18324a]">82</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {sampleRows.map(([label, value]) => (
+          <div key={label} className="rounded-xl border border-[#eee8dc] bg-[#faf9f6] p-4">
+            <p className="text-xs text-slate-500">{label}</p>
+            <p className="mt-1 text-lg font-semibold text-[#102033]">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 rounded-xl border border-[#ded8cb] bg-white p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#102033]">
+          <BarChart3 className="h-4 w-4 text-[#285f8f]" />
+          Recommendation
+        </div>
+        <p className="text-sm leading-6 text-slate-600">
+          Strong demand indicators and a young professional base make this a good test market, with rent and competition as the main risks to validate.
+        </p>
+      </div>
+    </div>
+  );
+}

@@ -54,20 +54,20 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   ];
 
   return (
-    <main className="bg-[#f7f9fe] px-6 py-10">
+    <main className="bg-[#faf9f6] px-6 py-10">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col justify-between gap-5 sm:flex-row">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <MapPin className="h-4 w-4 text-[#1769ff]" />
-              {report.locationName} - {report.radius} mile radius
-              <Badge variant="outline" className="ml-1 bg-white">
+              <MapPin className="h-4 w-4 text-[#285f8f]" />
+              {report.locationName} · {report.radius} mile radius
+              <Badge variant="outline" className="ml-1 border-[#cfc7b9] bg-white text-[#18324a]">
                 {report.dataSource === "census" ? "Live ACS Census data" : "Demo fallback data"}
               </Badge>
             </div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#061535]">{report.businessType}</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#102033]">{report.businessType}</h1>
           </div>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="border-[#bdb5a7] bg-white text-[#18324a] hover:bg-[#f1eee8]">
             <a href={`/api/reports/${id}/pdf`} download>
               <Download className="mr-2" />
               Download PDF
@@ -77,20 +77,20 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
           <section className="space-y-5">
-            <div className="rounded-[22px] bg-[#061535] p-7 text-white blue-shadow">
+            <div className="rounded-[22px] border border-[#102033] bg-[#18324a] p-7 text-white shadow-[0_14px_34px_rgba(16,32,51,.12)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-blue-100">Opportunity score</p>
+                  <p className="text-sm text-slate-200">Opportunity score</p>
                   <p className="mt-1 text-6xl font-semibold">
                     {report.opportunityScore}
                     <span className="ml-2 text-lg font-normal text-slate-400">/100</span>
                   </p>
                 </div>
-                <Badge className="bg-emerald-400/15 text-emerald-200 hover:bg-emerald-400/15">
+                <Badge className="border border-white/15 bg-white/10 text-white hover:bg-white/10">
                   {report.opportunityScore >= 75 ? "Strong potential" : report.opportunityScore >= 60 ? "Worth testing" : "Needs caution"}
                 </Badge>
               </div>
-              <p className="mt-5 max-w-3xl leading-7 text-slate-300">{details.executiveSummary}</p>
+              <p className="mt-5 max-w-3xl leading-7 text-slate-200">{details.executiveSummary}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,21 +101,21 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">
-              <div className="rounded-[22px] border bg-white p-6">
-                <h2 className="font-semibold">What drives the score</h2>
+              <div className="rounded-[22px] border border-[#ded8cb] bg-white p-6">
+                <h2 className="font-semibold text-[#102033]">What drives the score</h2>
                 <div className="mt-4 h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={bars}>
                       <XAxis dataKey="n" tickLine={false} axisLine={false} fontSize={12} />
                       <Tooltip />
-                      <Bar dataKey="v" fill="#1769ff" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="v" fill="#285f8f" radius={[5, 5, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="rounded-[22px] border bg-white p-6">
-                <h2 className="font-semibold">Market composition</h2>
+              <div className="rounded-[22px] border border-[#ded8cb] bg-white p-6">
+                <h2 className="font-semibold text-[#102033]">Market composition</h2>
                 <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
                   <MiniStat label="Housing units" value={fmt(report.metrics.housingUnits)} />
                   <MiniStat label="Households" value={fmt(report.metrics.households)} />
@@ -153,9 +153,9 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
 function Metric({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="rounded-[22px] border bg-white p-5 shadow-[0_8px_25px_rgba(26,62,125,.04)]">
+    <div className="rounded-[22px] border border-[#ded8cb] bg-white p-5 shadow-[0_8px_22px_rgba(16,32,51,.04)]">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-[#061535]">{value}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-[#102033]">{value}</p>
       <p className="mt-1 text-xs text-slate-400">{note}</p>
     </div>
   );
@@ -163,21 +163,21 @@ function Metric({ label, value, note }: { label: string; value: string; note: st
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
+    <div className="rounded-xl border border-[#eee8dc] bg-[#faf9f6] p-3">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 font-semibold text-[#061535]">{value}</p>
+      <p className="mt-1 font-semibold text-[#102033]">{value}</p>
     </div>
   );
 }
 
 function Section({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-[22px] border bg-white p-6">
-      <h2 className="font-semibold">{title}</h2>
+    <div className="rounded-[22px] border border-[#ded8cb] bg-white p-6">
+      <h2 className="font-semibold text-[#102033]">{title}</h2>
       <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
         {items.map((item) => (
           <li key={item} className="flex gap-3">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1769ff]" />
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#285f8f]" />
             {item}
           </li>
         ))}
@@ -188,9 +188,9 @@ function Section({ title, items }: { title: string; items: string[] }) {
 
 function Insight({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
   return (
-    <div className="rounded-[22px] border bg-white p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <Icon className="h-4 w-4 text-[#1769ff]" />
+    <div className="rounded-[22px] border border-[#ded8cb] bg-white p-5">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[#102033]">
+        <Icon className="h-4 w-4 text-[#285f8f]" />
         {title}
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
@@ -200,14 +200,17 @@ function Insight({ icon: Icon, title, text }: { icon: LucideIcon; title: string;
 
 function ListInsight({ icon: Icon, title, items }: { icon: LucideIcon; title: string; items: string[] }) {
   return (
-    <div className="rounded-[22px] border bg-white p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <Icon className="h-4 w-4 text-[#1769ff]" />
+    <div className="rounded-[22px] border border-[#ded8cb] bg-white p-5">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[#102033]">
+        <Icon className="h-4 w-4 text-[#285f8f]" />
         {title}
       </div>
       <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
         {items.map((item) => (
-          <li key={item}>- {item}</li>
+          <li key={item} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#b8ad9d]" />
+            {item}
+          </li>
         ))}
       </ul>
     </div>

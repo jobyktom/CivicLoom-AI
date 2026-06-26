@@ -133,7 +133,7 @@ function addList(doc: PDFKit.PDFDocument, items: string[]) {
 function addSection(doc: PDFKit.PDFDocument, title: string, body: string | string[]) {
   if (doc.y > 690) doc.addPage();
   doc.moveDown(0.9);
-  doc.font("Helvetica-Bold").fontSize(14).fillColor("#061535").text(title);
+  doc.font("Helvetica-Bold").fontSize(14).fillColor("#102033").text(title);
   doc.moveDown(0.35);
   if (Array.isArray(body)) addList(doc, body);
   else doc.font("Helvetica").fontSize(10).fillColor("#334155").text(body, { lineGap: 3 });
@@ -146,11 +146,11 @@ async function renderPdf(report: Report) {
   doc.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
   const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
 
-  doc.rect(0, 0, doc.page.width, 120).fill("#061535");
-  doc.fillColor("#93c5fd").font("Helvetica-Bold").fontSize(10).text("CIVICLOOM AI MARKET REPORT", 48, 34, { characterSpacing: 1.2 });
+  doc.rect(0, 0, doc.page.width, 120).fill("#18324a");
+  doc.fillColor("#d8cdbb").font("Helvetica-Bold").fontSize(10).text("CIVICLOOM AI MARKET REPORT", 48, 34, { characterSpacing: 1.2 });
   doc.fillColor("#ffffff").fontSize(22).text(report.businessType, 48, 54, { width: 330 });
-  doc.font("Helvetica").fontSize(11).fillColor("#dbeafe").text(`${report.locationName} - ${report.radius} mile radius`, 48, 88);
-  doc.roundedRect(430, 34, 110, 62, 12).fill("#1769ff");
+  doc.font("Helvetica").fontSize(11).fillColor("#f1eee8").text(`${report.locationName} - ${report.radius} mile radius`, 48, 88);
+  doc.roundedRect(430, 34, 110, 62, 12).fill("#285f8f");
   doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(28).text(String(report.opportunityScore), 450, 44, { width: 70, align: "center" });
   doc.font("Helvetica").fontSize(9).text("/100 score", 450, 75, { width: 70, align: "center" });
 
@@ -165,9 +165,9 @@ async function renderPdf(report: Report) {
     ["Employment", pct(report.metrics.employedPct)],
   ].forEach(([label, value], index) => {
     const x = 48 + index * 126;
-    doc.roundedRect(x, metricsTop, 112, 54, 8).strokeColor("#dbe4f0").stroke();
+    doc.roundedRect(x, metricsTop, 112, 54, 8).strokeColor("#ded8cb").stroke();
     doc.fillColor("#64748b").font("Helvetica").fontSize(8).text(label, x + 10, metricsTop + 10, { width: 92 });
-    doc.fillColor("#061535").font("Helvetica-Bold").fontSize(13).text(value, x + 10, metricsTop + 25, { width: 92 });
+    doc.fillColor("#102033").font("Helvetica-Bold").fontSize(13).text(value, x + 10, metricsTop + 25, { width: 92 });
   });
   doc.y = metricsTop + 72;
 

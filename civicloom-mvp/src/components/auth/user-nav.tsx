@@ -27,7 +27,7 @@ export function UserNav() {
 
   if (!user) {
     return (
-      <Button asChild variant="outline" className="border-slate-300 bg-white px-5 text-[#061535] hover:bg-slate-50">
+      <Button asChild variant="outline" className="border-[#bdb5a7] bg-transparent px-5 text-[#18324a] hover:bg-[#f1eee8]">
         <Link href="/auth">Sign in</Link>
       </Button>
     );
@@ -35,13 +35,12 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-3">
-      <Link href="/dashboard" className="hidden text-sm font-medium text-slate-600 hover:text-[#1769ff] sm:block">
+      <Link href="/dashboard" className="hidden text-sm font-medium text-slate-600 hover:text-[#18324a] sm:block">
         {user.name || user.email}
       </Link>
-      <Button type="button" variant="outline" className="border-slate-300 bg-white px-4 text-[#061535] hover:bg-slate-50" onClick={signOut}>
+      <Button type="button" variant="outline" className="border-[#bdb5a7] bg-transparent px-4 text-[#18324a] hover:bg-[#f1eee8]" onClick={signOut}>
         Sign out
       </Button>
     </div>
   );
 }
-

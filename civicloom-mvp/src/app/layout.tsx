@@ -15,23 +15,23 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>
-        <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur">
+      <body className={`${inter.className} bg-[#faf9f6] antialiased`}>
+        <header className="sticky top-0 z-20 border-b border-[#ded8cb] bg-[#faf9f6]">
           <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
-            <Link href="/" className="flex items-center gap-2.5 text-[22px] font-bold tracking-[-.04em]">
-              <span className="grid h-9 w-9 place-items-center rounded-lg brand-gradient text-white shadow-md shadow-blue-500/25">
+            <Link href="/" className="flex items-center gap-2.5 text-[22px] font-bold tracking-[-.04em] text-[#102033]">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#18324a] text-white">
                 <Map className="h-5 w-5" />
               </span>
-              CivicLoom <span className="text-[#1769ff]">AI</span>
+              CivicLoom <span className="text-[#285f8f]">AI</span>
             </Link>
             <nav className="hidden items-center gap-9 text-[15px] font-medium text-slate-600 sm:flex">
-              <Link className="hover:text-[#1769ff]" href="/dashboard">
+              <Link className="hover:text-[#18324a]" href="/dashboard">
                 Product
               </Link>
-              <Link className="hover:text-[#1769ff]" href="/compare">
+              <Link className="hover:text-[#18324a]" href="/compare">
                 Compare
               </Link>
-              <Link className="hover:text-[#1769ff]" href="/pricing">
+              <Link className="hover:text-[#18324a]" href="/pricing">
                 Pricing
               </Link>
             </nav>
@@ -39,11 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         {children}
-        <footer className="border-t border-slate-100 px-6 py-8 text-center text-sm text-slate-500">
+        <footer className="border-t border-[#ded8cb] px-6 py-8 text-center text-sm text-slate-500">
           © 2026 CivicLoom AI · Built for better local decisions
         </footer>
       </body>
     </html>
   );
 }
-
