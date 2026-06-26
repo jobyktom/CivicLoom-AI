@@ -58,16 +58,18 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           <div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <MapPin className="h-4 w-4 text-[#1769ff]" />
-              {report.locationName} · {report.radius} mile radius
+              {report.locationName} - {report.radius} mile radius
               <Badge variant="outline" className="ml-1 bg-white">
                 {report.dataSource === "census" ? "Live ACS Census data" : "Demo fallback data"}
               </Badge>
             </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#061535]">{report.businessType}</h1>
           </div>
-          <Button variant="outline" onClick={() => window.print()}>
-            <Download className="mr-2" />
-            Download PDF
+          <Button asChild variant="outline">
+            <a href={`/api/reports/${id}/pdf`} download>
+              <Download className="mr-2" />
+              Download PDF
+            </a>
           </Button>
         </div>
 
@@ -203,7 +205,7 @@ function ListInsight({ icon: Icon, title, items }: { icon: LucideIcon; title: st
       </div>
       <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
         {items.map((item) => (
-          <li key={item}>• {item}</li>
+          <li key={item}>- {item}</li>
         ))}
       </ul>
     </div>
