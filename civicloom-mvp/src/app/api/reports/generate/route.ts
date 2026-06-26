@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCensusMetrics } from "@/lib/census";
-import { calculateOpportunityScore } from "@/lib/scoring";
+import { getCensusMetrics, resolveLocationGeography } from "@/lib/census";
+import { calculateOpportunityScore, calculateScoreBreakdown } from "@/lib/scoring";
 import { demoReport } from "@/lib/mock-data";
 import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
+import { generateReportNarrative } from "@/lib/ai";
 
 const stateCodes: Record<string, string> = {
   TEXAS: "48",
@@ -24,24 +25,14 @@ const stateCodes: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const [city, stateName] = String(body.location || "")
-      .split(",")
-      .map((x: string) => x.trim());
-    const state = stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
+    const [, stateName] = String(body.location || "").split(",").map((x: string) => x.trim());
+    const resolved = await resolveLocationGeography(String(body.location || ""));
+    const state = resolved?.state || stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
     let metrics = null;
-    let county: string | undefined;
+    let county: string | undefined = resolved?.county;
 
-    try {
-      const geo = await fetch(
-        `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?format=json&benchmark=Public_AR_Current&address=${encodeURIComponent(
-          `${city}, ${stateName || ""}`,
-        )}`,
-      ).then((res) => res.json());
-      const match = geo.result?.addressMatches?.[0];
-      county = match?.geographies?.Counties?.[0]?.GEOID?.slice(2);
+    if (county) {
       metrics = county ? await getCensusMetrics({ state, county }) : null;
-    } catch {
-      metrics = null;
     }
 
     const base = {
@@ -57,11 +48,21 @@ export async function POST(request: NextRequest) {
       reportType: body.reportType || demoReport.reportType,
       createdAt: new Date().toISOString().slice(0, 10),
       metrics: metrics || demoReport.metrics,
+      dataSource: metrics ? ("census" as const) : ("demo" as const),
     };
 
-    const report = {
+    const scoredReport = {
       ...base,
       opportunityScore: calculateOpportunityScore(base.metrics, base.businessType, base.targetCustomer),
+      scoreBreakdown: calculateScoreBreakdown(base.metrics, base.businessType, base.targetCustomer),
+    };
+    const details = await generateReportNarrative(scoredReport);
+    const report = {
+      ...scoredReport,
+      aiSummary: details.executiveSummary,
+      riskSummary: details.risks.join(" "),
+      recommendation: details.finalRecommendation,
+      details,
     };
     const db = getDbPool();
 
@@ -90,11 +91,18 @@ export async function POST(request: NextRequest) {
         await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?", [
           Object.entries(report.metrics).map(([metricName, metricValue]) => [report.id, metricName, metricValue, 2023]),
         ]);
-        await db.execute("INSERT INTO ai_summaries (report_id,executive_summary,risks,recommendation) VALUES (?,?,?,?)", [
+        await db.execute("INSERT INTO ai_summaries (report_id,executive_summary,risks,ideal_customer,marketing_angle,recommendation) VALUES (?,?,?,?,?,?)", [
           report.id,
-          report.aiSummary,
-          report.riskSummary,
-          report.recommendation,
+          details.executiveSummary,
+          JSON.stringify(details.risks),
+          details.idealCustomer,
+          details.marketingAngle,
+          JSON.stringify({
+            finalRecommendation: details.finalRecommendation,
+            whyThisLocationWorks: details.whyThisLocationWorks,
+            suggestedNextSteps: details.suggestedNextSteps,
+            demandDrivers: details.demandDrivers,
+          }),
         ]);
       } catch (error) {
         console.error("Report database save failed", error);
@@ -108,4 +116,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unable to generate report. Please check the location and try again." }, { status: 500 });
   }
 }
-

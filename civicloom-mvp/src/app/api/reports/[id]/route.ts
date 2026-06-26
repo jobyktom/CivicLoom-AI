@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { demoReport } from "@/lib/mock-data";
-import type { CensusMetrics, Report } from "@/lib/types";
+import { calculateScoreBreakdown } from "@/lib/scoring";
+import type { CensusMetrics, Report, ReportDetails } from "@/lib/types";
 
 type ReportRow = {
   id: string;
@@ -25,6 +26,36 @@ type MetricRow = {
   metric_name: keyof CensusMetrics;
   metric_value: number | null;
 };
+
+type AiRow = {
+  executive_summary: string | null;
+  risks: string | null;
+  ideal_customer: string | null;
+  marketing_angle: string | null;
+  recommendation: string | null;
+};
+
+function parseArray(value: string | null, fallback: string[]) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : fallback;
+  } catch {
+    return value
+      .split(/\n|•|-/)
+      .map((item) => item.trim())
+      .filter(Boolean) || fallback;
+  }
+}
+
+function parseRecommendation(value: string | null) {
+  if (!value) return {};
+  try {
+    return JSON.parse(value) as Partial<Pick<ReportDetails, "finalRecommendation" | "whyThisLocationWorks" | "suggestedNextSteps" | "demandDrivers">>;
+  } catch {
+    return { finalRecommendation: value };
+  }
+}
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,6 +82,29 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (metric.metric_value !== null) metrics[metric.metric_name] = Number(metric.metric_value);
   }
 
+  const [aiRows] = await db.execute(
+    "SELECT executive_summary,risks,ideal_customer,marketing_angle,recommendation FROM ai_summaries WHERE report_id = ? ORDER BY created_at DESC LIMIT 1",
+    [id],
+  );
+  const ai = (aiRows as AiRow[])[0];
+  const recommendationPayload = parseRecommendation(ai?.recommendation || null);
+  const details: ReportDetails = {
+    executiveSummary: ai?.executive_summary || row.ai_summary || demoReport.details?.executiveSummary || demoReport.aiSummary,
+    whyThisLocationWorks: Array.isArray(recommendationPayload.whyThisLocationWorks)
+      ? recommendationPayload.whyThisLocationWorks.map(String)
+      : demoReport.details?.whyThisLocationWorks || [],
+    risks: parseArray(ai?.risks || row.risk_summary, demoReport.details?.risks || []),
+    idealCustomer: ai?.ideal_customer || row.target_customer || demoReport.details?.idealCustomer || "Local customers",
+    marketingAngle: ai?.marketing_angle || demoReport.details?.marketingAngle || "",
+    suggestedNextSteps: Array.isArray(recommendationPayload.suggestedNextSteps)
+      ? recommendationPayload.suggestedNextSteps.map(String)
+      : demoReport.details?.suggestedNextSteps || [],
+    finalRecommendation: recommendationPayload.finalRecommendation || row.recommendation || demoReport.recommendation,
+    demandDrivers: Array.isArray(recommendationPayload.demandDrivers)
+      ? recommendationPayload.demandDrivers.map(String)
+      : demoReport.details?.demandDrivers || [],
+  };
+
   const report: Report = {
     id: row.id,
     businessType: row.business_type,
@@ -63,13 +117,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     targetCustomer: row.target_customer || "Local customers",
     reportType: row.report_type || "Market opportunity",
     opportunityScore: row.opportunity_score || 0,
+    scoreBreakdown: calculateScoreBreakdown(metrics, row.business_type, row.target_customer || "Local customers"),
     metrics,
-    aiSummary: row.ai_summary || "",
-    riskSummary: row.risk_summary || "",
-    recommendation: row.recommendation || "",
+    aiSummary: details.executiveSummary,
+    riskSummary: details.risks.join(" "),
+    recommendation: details.finalRecommendation,
+    details,
+    dataSource: "census",
     createdAt: row.created_at.toISOString().slice(0, 10),
   };
 
   return NextResponse.json({ report, source: "mysql" });
 }
-

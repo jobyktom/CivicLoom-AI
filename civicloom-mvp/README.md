@@ -15,7 +15,8 @@ Open `http://localhost:3000`.
 ## Configuration
 
 - `CENSUS_API_KEY` is optional for low-volume Census API use but recommended for production. The report API uses Census geocoding and then county ACS data.
-- `OPENAI_API_KEY` enables real AI narratives. Without it, CivicLoom uses the demo narrative.
+- `OPENAI_API_KEY` enables detailed AI report sections. Without it, CivicLoom uses a structured fallback narrative.
+- `OPENAI_MODEL` defaults to `gpt-4o-mini` if omitted.
 - Add Hostinger MySQL variables to persist reports. Use either `DATABASE_URL` or the separate `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables.
 - If your MySQL password contains special URL characters such as `@`, prefer the separate `DB_*` variables. If you use `DATABASE_URL`, encode `@` as `%40`.
 - Run `hostinger/schema.sql` in Hostinger phpMyAdmin before enabling persistence.
@@ -25,8 +26,8 @@ Open `http://localhost:3000`.
 ## Architecture
 
 - `src/lib/census.ts`: modular ACS variable map and county/place lookup.
-- `src/lib/scoring.ts`: transparent 35/25/25/15 weighted opportunity score.
-- `src/lib/ai.ts`: OpenAI generation with safe mock fallback.
+- `src/lib/scoring.ts`: transparent 35/25/25/15 weighted opportunity score plus component breakdown.
+- `src/lib/ai.ts`: structured OpenAI report generation with safe fallback.
 - `src/lib/mock-data.ts`: demo report data for the MVP UI.
 - `src/lib/db.ts`: lazy Hostinger MySQL pool. The app falls back to demo data if database variables are missing.
 - `src/app/api/reports/generate/route.ts`: Census-resolved report generation plus optional Hostinger MySQL persistence.
