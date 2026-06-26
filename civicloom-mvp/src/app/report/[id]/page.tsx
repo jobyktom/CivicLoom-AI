@@ -27,13 +27,15 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
     if (saved) {
       setReport(JSON.parse(saved));
-      return;
     }
 
     fetch(`/api/reports/${id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((payload) => {
-        if (active && payload?.report) setReport(payload.report);
+        if (active && payload?.report) {
+          setReport(payload.report);
+          localStorage.setItem(`civicloom-report-${id}`, JSON.stringify(payload.report));
+        }
       })
       .catch(() => {});
 
@@ -211,4 +213,3 @@ function ListInsight({ icon: Icon, title, items }: { icon: LucideIcon; title: st
     </div>
   );
 }
-
