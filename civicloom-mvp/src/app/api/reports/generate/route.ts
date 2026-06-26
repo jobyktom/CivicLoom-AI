@@ -2,6 +2,110 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCensusMetrics } from "@/lib/census";
 import { calculateOpportunityScore } from "@/lib/scoring";
 import { demoReport } from "@/lib/mock-data";
-import { getDbPool } from "@/lib/db";
-export async function POST(request:NextRequest){try{const body=await request.json();const [city,stateName]=String(body.location||"").split(",").map((x:string)=>x.trim());const state=stateCodes[stateName?.toUpperCase()]||stateCodes[stateName]||"48";let metrics=null;let county:string|undefined;try{const geo=await fetch(`https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?format=json&benchmark=Public_AR_Current&address=${encodeURIComponent(`${city}, ${stateName||""}`)}`).then(r=>r.json());const match=geo.result?.addressMatches?.[0];county=match?.geographies?.Counties?.[0]?.GEOID?.slice(2);metrics=county?await getCensusMetrics({state,county}):null;}catch{}const base={...demoReport,id:crypto.randomUUID(),businessType:body.businessType||demoReport.businessType,locationName:body.location||demoReport.locationName,geographyType:"county" as const,stateCode:state,countyCode:county,targetCustomer:body.targetCustomer||demoReport.targetCustomer,radius:Number(body.radius)||3,reportType:body.reportType||demoReport.reportType,createdAt:new Date().toISOString().slice(0,10),metrics:metrics||demoReport.metrics};const report={...base,opportunityScore:calculateOpportunityScore(base.metrics,base.businessType,base.targetCustomer)};const db=getDbPool();if(db){await db.execute("INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",[report.id,body.userId||null,report.businessType,report.locationName,report.geographyType,report.stateCode||null,report.countyCode||null,report.placeCode||null,report.radius,report.targetCustomer,report.reportType,report.opportunityScore,report.aiSummary,report.riskSummary,report.recommendation]);await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?",[Object.entries(report.metrics).map(([metricName,metricValue])=>[report.id,metricName,metricValue,2023])]);await db.execute("INSERT INTO ai_summaries (report_id,executive_summary,risks,recommendation) VALUES (?,?,?,?)",[report.id,report.aiSummary,report.riskSummary,report.recommendation]);}return NextResponse.json({report,source:metrics?"census":"demo",saved:Boolean(db)});}catch(error){console.error("Report generation failed",error);return NextResponse.json({error:"Unable to generate report."},{status:500});}}
-const stateCodes:Record<string,string>={"TEXAS":"48",TX:"48","CALIFORNIA":"06",CA:"06","NEW YORK":"36",NY:"36","NORTH CAROLINA":"37",NC:"37",ARIZONA:"04",AZ:"04",FLORIDA:"12",FL:"12",ILLINOIS:"17",IL:"17"};
+import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
+
+const stateCodes: Record<string, string> = {
+  TEXAS: "48",
+  TX: "48",
+  CALIFORNIA: "06",
+  CA: "06",
+  "NEW YORK": "36",
+  NY: "36",
+  "NORTH CAROLINA": "37",
+  NC: "37",
+  ARIZONA: "04",
+  AZ: "04",
+  FLORIDA: "12",
+  FL: "12",
+  ILLINOIS: "17",
+  IL: "17",
+};
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const [city, stateName] = String(body.location || "")
+      .split(",")
+      .map((x: string) => x.trim());
+    const state = stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
+    let metrics = null;
+    let county: string | undefined;
+
+    try {
+      const geo = await fetch(
+        `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?format=json&benchmark=Public_AR_Current&address=${encodeURIComponent(
+          `${city}, ${stateName || ""}`,
+        )}`,
+      ).then((res) => res.json());
+      const match = geo.result?.addressMatches?.[0];
+      county = match?.geographies?.Counties?.[0]?.GEOID?.slice(2);
+      metrics = county ? await getCensusMetrics({ state, county }) : null;
+    } catch {
+      metrics = null;
+    }
+
+    const base = {
+      ...demoReport,
+      id: crypto.randomUUID(),
+      businessType: body.businessType || demoReport.businessType,
+      locationName: body.location || demoReport.locationName,
+      geographyType: "county" as const,
+      stateCode: state,
+      countyCode: county,
+      targetCustomer: body.targetCustomer || demoReport.targetCustomer,
+      radius: Number(body.radius) || 3,
+      reportType: body.reportType || demoReport.reportType,
+      createdAt: new Date().toISOString().slice(0, 10),
+      metrics: metrics || demoReport.metrics,
+    };
+
+    const report = {
+      ...base,
+      opportunityScore: calculateOpportunityScore(base.metrics, base.businessType, base.targetCustomer),
+    };
+    const db = getDbPool();
+
+    if (db) {
+      try {
+        await db.execute(
+          "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [
+            report.id,
+            body.userId || null,
+            report.businessType,
+            report.locationName,
+            report.geographyType,
+            report.stateCode || null,
+            report.countyCode || null,
+            report.placeCode || null,
+            report.radius,
+            report.targetCustomer,
+            report.reportType,
+            report.opportunityScore,
+            report.aiSummary,
+            report.riskSummary,
+            report.recommendation,
+          ],
+        );
+        await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?", [
+          Object.entries(report.metrics).map(([metricName, metricValue]) => [report.id, metricName, metricValue, 2023]),
+        ]);
+        await db.execute("INSERT INTO ai_summaries (report_id,executive_summary,risks,recommendation) VALUES (?,?,?,?)", [
+          report.id,
+          report.aiSummary,
+          report.riskSummary,
+          report.recommendation,
+        ]);
+      } catch (error) {
+        console.error("Report database save failed", error);
+        return NextResponse.json({ error: getDatabaseErrorMessage(error), report, saved: false }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json({ report, source: metrics ? "census" : "demo", saved: Boolean(db) });
+  } catch (error) {
+    console.error("Report generation failed", error);
+    return NextResponse.json({ error: "Unable to generate report. Please check the location and try again." }, { status: 500 });
+  }
+}
+
