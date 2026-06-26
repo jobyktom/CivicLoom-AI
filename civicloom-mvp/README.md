@@ -17,9 +17,11 @@ Open `http://localhost:3000`.
 - `CENSUS_API_KEY` is optional for low-volume Census API use but recommended for production. The report API uses Census geocoding and then county ACS data.
 - `OPENAI_API_KEY` enables detailed AI report sections. Without it, CivicLoom uses a structured fallback narrative.
 - `OPENAI_MODEL` defaults to `gpt-4o-mini` if omitted.
+- `AUTH_SECRET` signs first-party session cookies. Use a long random value in production.
 - Add Hostinger MySQL variables to persist reports. Use either `DATABASE_URL` or the separate `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables.
 - If your MySQL password contains special URL characters such as `@`, prefer the separate `DB_*` variables. If you use `DATABASE_URL`, encode `@` as `%40`.
 - Run `hostinger/schema.sql` in Hostinger phpMyAdmin before enabling persistence.
+- If your `users` table already exists from an older version, run `hostinger/auth-migration.sql` once to add `password_hash`.
 - Visit `/api/db/health` after deployment to confirm the app can connect to MySQL and see the `reports` table.
 - Add `STRIPE_SECRET_KEY` plus one recurring Price ID per paid plan to activate hosted Stripe Checkout. Stripe uses subscription Checkout Sessions; it never exposes the secret key in the browser.
 

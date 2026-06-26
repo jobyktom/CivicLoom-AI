@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255),
+  password_hash VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,4 +64,3 @@ CREATE TABLE IF NOT EXISTS ai_summaries (
   INDEX idx_ai_summaries_report (report_id),
   CONSTRAINT fk_ai_summaries_report FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
 );
-

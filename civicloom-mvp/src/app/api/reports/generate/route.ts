@@ -4,6 +4,7 @@ import { calculateOpportunityScore, calculateScoreBreakdown } from "@/lib/scorin
 import { demoReport } from "@/lib/mock-data";
 import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
 import { generateReportNarrative } from "@/lib/ai";
+import { getCurrentUser } from "@/lib/auth";
 
 const stateCodes: Record<string, string> = {
   TEXAS: "48",
@@ -25,6 +26,7 @@ const stateCodes: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = await getCurrentUser();
     const [, stateName] = String(body.location || "").split(",").map((x: string) => x.trim());
     const resolved = await resolveLocationGeography(String(body.location || ""));
     const state = resolved?.state || stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
           "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
           [
             report.id,
-            body.userId || null,
+            user?.id || null,
             report.businessType,
             report.locationName,
             report.geographyType,
