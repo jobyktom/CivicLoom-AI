@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { Map } from "lucide-react";
 import { UserNav } from "@/components/auth/user-nav";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const bodyFont = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex",
+});
+
+const displayFont = Newsreader({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-newsreader",
+});
 
 export const metadata: Metadata = {
   title: "CivicLoom AI",
@@ -15,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[#faf9f6] antialiased`}>
+      <body className={`${bodyFont.variable} ${displayFont.variable} bg-[#faf9f6] font-sans antialiased`}>
         <header className="sticky top-0 z-20 border-b border-[#ded8cb] bg-[#faf9f6]">
           <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
             <Link href="/" className="flex items-center gap-2.5 text-[22px] font-bold tracking-[-.04em] text-[#102033]">
