@@ -3,63 +3,9 @@ import { ArrowUpRight, Building2, Database, FileText, MapPinned, Plus, TrendingU
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getBillingStatus } from "@/lib/billing";
-import { getDbPool } from "@/lib/db";
-import { savedReports } from "@/lib/mock-data";
-import type { Report } from "@/lib/types";
+import { listSavedReports } from "@/lib/report-list";
 
 export const dynamic = "force-dynamic";
-
-type ReportRow = {
-  id: string;
-  business_type: string;
-  location_name: string;
-  geography_type: "place" | "county";
-  state_code: string | null;
-  county_code: string | null;
-  place_code: string | null;
-  radius: number | null;
-  target_customer: string | null;
-  report_type: string | null;
-  opportunity_score: number | null;
-  ai_summary: string | null;
-  risk_summary: string | null;
-  recommendation: string | null;
-  created_at: Date;
-};
-
-async function getReports(userId?: string) {
-  const db = getDbPool();
-  if (!db) return { reports: savedReports, source: "demo" as const };
-
-  const sql = userId
-    ? "SELECT id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,created_at FROM reports WHERE user_id = ? ORDER BY created_at DESC LIMIT 25"
-    : "SELECT id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,created_at FROM reports ORDER BY created_at DESC LIMIT 25";
-  const [rows] = userId ? await db.query(sql, [userId]) : await db.query(sql);
-
-  return {
-    source: "mysql" as const,
-    reports: (rows as ReportRow[]).map(
-      (row): Report => ({
-        id: row.id,
-        businessType: row.business_type,
-        locationName: row.location_name,
-        geographyType: row.geography_type,
-        stateCode: row.state_code || undefined,
-        countyCode: row.county_code || undefined,
-        placeCode: row.place_code || undefined,
-        radius: row.radius || 3,
-        targetCustomer: row.target_customer || "Local customers",
-        reportType: row.report_type || "Market opportunity",
-        opportunityScore: row.opportunity_score || 0,
-        metrics: savedReports[0].metrics,
-        aiSummary: row.ai_summary || "",
-        riskSummary: row.risk_summary || "",
-        recommendation: row.recommendation || "",
-        createdAt: row.created_at.toISOString().slice(0, 10),
-      }),
-    ),
-  };
-}
 
 const scoreLabel = (score: number) => (score >= 75 ? "Strong" : score >= 60 ? "Watchlist" : "Caution");
 const formatDate = (value: string) =>
@@ -67,7 +13,7 @@ const formatDate = (value: string) =>
 
 export default async function Dashboard() {
   const user = await getCurrentUser();
-  const { reports, source } = await getReports(user?.id);
+  const { reports, source } = await listSavedReports(user?.id);
   const billing = await getBillingStatus(user?.id);
   const averageScore = reports.length ? Math.round(reports.reduce((sum, report) => sum + report.opportunityScore, 0) / reports.length) : 0;
   const topReport = [...reports].sort((a, b) => b.opportunityScore - a.opportunityScore)[0];
