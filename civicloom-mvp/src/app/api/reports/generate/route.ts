@@ -103,7 +103,9 @@ export async function POST(request: NextRequest) {
         await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?", [
           Object.entries(report.metrics).map(([metricName, metricValue]) => [report.id, metricName, metricValue, 2023]),
         ]);
-        await db.execute("INSERT INTO ai_summaries (report_id,executive_summary,risks,ideal_customer,marketing_angle,recommendation) VALUES (?,?,?,?,?,?)", [
+        await db.execute(
+          "INSERT INTO ai_summaries (report_id,executive_summary,risks,ideal_customer,marketing_angle,recommendation,structured_json) VALUES (?,?,?,?,?,?,?)",
+          [
           report.id,
           details.executiveSummary,
           JSON.stringify(details.risks),
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest) {
             suggestedNextSteps: details.suggestedNextSteps,
             demandDrivers: details.demandDrivers,
           }),
+          JSON.stringify({ details }),
         ]);
         await recordUsageEvent({
           userId: user?.id,

@@ -26,6 +26,10 @@ export type ScoreBreakdown = {
 
 export type ReportDetails = {
   executiveSummary: string;
+  demandAnalysis?: string;
+  incomeFit?: string;
+  housingInsight?: string;
+  employmentInsight?: string;
   whyThisLocationWorks: string[];
   risks: string[];
   idealCustomer: string;

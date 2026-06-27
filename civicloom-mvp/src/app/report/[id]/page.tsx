@@ -129,6 +129,13 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
               </div>
             </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              {details.demandAnalysis && <Insight icon={BriefcaseBusiness} title="Demand analysis" text={details.demandAnalysis} />}
+              {details.incomeFit && <Insight icon={Users} title="Income fit" text={details.incomeFit} />}
+              {details.housingInsight && <Insight icon={Home} title="Housing insight" text={details.housingInsight} />}
+              {details.employmentInsight && <Insight icon={Lightbulb} title="Employment insight" text={details.employmentInsight} />}
+            </div>
+
             <Section title="Why this location works" items={details.whyThisLocationWorks} />
             <Section title="Suggested next steps" items={details.suggestedNextSteps} />
           </section>

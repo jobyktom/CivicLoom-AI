@@ -14,6 +14,10 @@ function fallbackDetails(report: Report): ReportDetails {
 
   return {
     executiveSummary: `${report.locationName} shows a ${report.opportunityScore}/100 opportunity score for ${report.businessType}. The market has ${report.metrics.population.toLocaleString()} residents, median household income around ${income}, and an employment rate near ${Math.round(report.metrics.employedPct)}%.`,
+    demandAnalysis: `Demand is anchored by a population base of ${report.metrics.population.toLocaleString()} and a ${Math.round(report.metrics.employedPct)}% employment rate, which supports repeat local spending if the site has enough visibility.`,
+    incomeFit: `Median household income around ${income} suggests the concept should be priced for ${report.targetCustomer} without assuming luxury-only demand.`,
+    housingInsight: `${Math.round(report.metrics.renterPct)}% renter occupancy and ${report.metrics.housingUnits.toLocaleString()} housing units can support convenience-driven visits, especially near dense residential pockets.`,
+    employmentInsight: `Commute and work-from-home patterns point to a need for both weekday convenience and neighborhood-oriented marketing.`,
     whyThisLocationWorks: [
       `The local population base creates enough day-to-day demand to test a focused ${report.businessType} concept.`,
       `Median household income of ${income} supports a clear pricing strategy for ${report.targetCustomer}.`,
@@ -44,6 +48,10 @@ function coerceDetails(value: unknown, report: Report): ReportDetails {
 
   return {
     executiveSummary: String(parsed.executiveSummary || fallback.executiveSummary),
+    demandAnalysis: parsed.demandAnalysis ? String(parsed.demandAnalysis) : fallback.demandAnalysis,
+    incomeFit: parsed.incomeFit ? String(parsed.incomeFit) : fallback.incomeFit,
+    housingInsight: parsed.housingInsight ? String(parsed.housingInsight) : fallback.housingInsight,
+    employmentInsight: parsed.employmentInsight ? String(parsed.employmentInsight) : fallback.employmentInsight,
     whyThisLocationWorks: asArray(parsed.whyThisLocationWorks, fallback.whyThisLocationWorks),
     risks: asArray(parsed.risks, fallback.risks),
     idealCustomer: String(parsed.idealCustomer || fallback.idealCustomer),
@@ -74,6 +82,10 @@ export async function generateReportNarrative(report: Report): Promise<ReportDet
             task: "Create a detailed local market report.",
             requiredShape: {
               executiveSummary: "string",
+              demandAnalysis: "string",
+              incomeFit: "string",
+              housingInsight: "string",
+              employmentInsight: "string",
               whyThisLocationWorks: ["string"],
               risks: ["string"],
               idealCustomer: "string",
@@ -95,4 +107,3 @@ export async function generateReportNarrative(report: Report): Promise<ReportDet
     return fallbackDetails(report);
   }
 }
-

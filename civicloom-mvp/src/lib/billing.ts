@@ -96,6 +96,7 @@ export async function ensureBillingSchema() {
 
   await addColumnIfMissing("users", "stripe_customer_id", "VARCHAR(255) NULL");
   await addColumnIfMissing("reports", "report_json", "JSON NULL");
+  await addColumnIfMissing("ai_summaries", "structured_json", "JSON NULL");
   await addIndexIfMissing("ALTER TABLE users ADD UNIQUE INDEX users_stripe_customer_id_key (stripe_customer_id)");
 
   await db.execute(`
