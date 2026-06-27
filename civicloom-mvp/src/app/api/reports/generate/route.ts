@@ -5,6 +5,7 @@ import { demoReport } from "@/lib/mock-data";
 import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
 import { generateReportNarrative } from "@/lib/ai";
 import { getCurrentUser } from "@/lib/auth";
+import { assertCanGenerateReport, ensureBillingSchema, recordUsageEvent } from "@/lib/billing";
 
 const stateCodes: Record<string, string> = {
   TEXAS: "48",
@@ -27,6 +28,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const user = await getCurrentUser();
+    const usageCheck = await assertCanGenerateReport(user?.id);
+    if (!usageCheck.allowed) {
+      return NextResponse.json({ error: usageCheck.error, billing: usageCheck.billing }, { status: 402 });
+    }
+
     const [, stateName] = String(body.location || "").split(",").map((x: string) => x.trim());
     const resolved = await resolveLocationGeography(String(body.location || ""));
     const state = resolved?.state || stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
@@ -72,8 +78,9 @@ export async function POST(request: NextRequest) {
 
     if (db) {
       try {
+        await ensureBillingSchema();
         await db.execute(
-          "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,report_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
           [
             report.id,
             user?.id || null,
@@ -90,6 +97,7 @@ export async function POST(request: NextRequest) {
             report.aiSummary,
             report.riskSummary,
             report.recommendation,
+            JSON.stringify({ details, scoreBreakdown: report.scoreBreakdown, dataSource: report.dataSource }),
           ],
         );
         await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?", [
@@ -108,6 +116,13 @@ export async function POST(request: NextRequest) {
             demandDrivers: details.demandDrivers,
           }),
         ]);
+        await recordUsageEvent({
+          userId: user?.id,
+          reportId: report.id,
+          eventType: "report_generated",
+          plan: usageCheck.billing.plan,
+          metadata: { businessType: report.businessType, locationName: report.locationName },
+        });
       } catch (error) {
         console.error("Report database save failed", error);
         return NextResponse.json({ error: getDatabaseErrorMessage(error), report, saved: false }, { status: 500 });

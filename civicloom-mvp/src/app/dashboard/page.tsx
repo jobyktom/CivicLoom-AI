@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Building2, Database, FileText, MapPinned, Plus, TrendingUp, UserRound, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
+import { getBillingStatus } from "@/lib/billing";
 import { getDbPool } from "@/lib/db";
 import { savedReports } from "@/lib/mock-data";
 import type { Report } from "@/lib/types";
@@ -67,6 +68,7 @@ const formatDate = (value: string) =>
 export default async function Dashboard() {
   const user = await getCurrentUser();
   const { reports, source } = await getReports(user?.id);
+  const billing = await getBillingStatus(user?.id);
   const averageScore = reports.length ? Math.round(reports.reduce((sum, report) => sum + report.opportunityScore, 0) / reports.length) : 0;
   const topReport = [...reports].sort((a, b) => b.opportunityScore - a.opportunityScore)[0];
 
@@ -121,10 +123,11 @@ export default async function Dashboard() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
+        <section className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <MetricCard icon={FileText} label="Saved reports" value={String(reports.length)} note="Latest 25 shown" />
           <MetricCard icon={TrendingUp} label="Average score" value={averageScore ? `${averageScore}/100` : "—"} note="Across visible reports" />
           <MetricCard icon={MapPinned} label="Top location" value={topReport?.locationName || "—"} note={topReport ? scoreLabel(topReport.opportunityScore) : "Run a report"} />
+          <MetricCard icon={FileText} label="Usage" value={`${billing.reportsUsed}/${billing.reportLimit}`} note={`${billing.label} plan`} />
           <MetricCard icon={Building2} label="Data mode" value={source === "mysql" ? "MySQL" : "Demo"} note={source === "mysql" ? "Remote database" : "Fallback data"} />
         </section>
 
@@ -156,7 +159,9 @@ export default async function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[#102033]">{report.locationName}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[.14em] text-slate-400">{report.geographyType} · {report.radius} mi</p>
+                    <p className="mt-1 text-xs uppercase tracking-[.14em] text-slate-400">
+                      {report.geographyType} · {report.radius} mi
+                    </p>
                   </div>
                   <div>
                     <span className="inline-flex rounded-full border border-[#cfc7b9] bg-[#faf9f6] px-3 py-1 text-sm font-semibold text-[#285f8f]">

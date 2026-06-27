@@ -8,7 +8,7 @@ const plans: [string, string, string, string[]][] = [
   ["Free", "$0", "1 report / month", ["One market report", "Census data overview", "Basic score"]],
   ["Starter", "$19", "per month", ["5 reports / month", "AI market recommendations", "Location comparison"]],
   ["Pro", "$49", "per month", ["20 reports / month", "PDF exports", "Priority data refresh"]],
-  ["Agency", "$129", "per month", ["Unlimited reports", "Team workspace", "Client-ready branding"]],
+  ["Agency", "$129", "per month", ["100 reports / month", "Team workspace", "Client-ready branding"]],
 ];
 
 export default function Pricing() {
@@ -24,6 +24,7 @@ export default function Pricing() {
     });
     const payload = await response.json();
     if (payload.url) location.assign(payload.url);
+    else if (response.status === 401) location.assign("/auth");
     else alert(payload.error);
     setLoading("");
   }
@@ -34,7 +35,7 @@ export default function Pricing() {
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[.18em] text-[#285f8f]">Simple, dollar-based pricing</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#102033] sm:text-5xl">A plan for every local decision workflow.</h1>
-          <p className="mt-4 leading-7 text-slate-600">All prices are in USD. Secure Stripe Checkout launches when configured.</p>
+          <p className="mt-4 leading-7 text-slate-600">All prices are in USD. Secure Stripe Checkout opens when Stripe price IDs are configured.</p>
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {plans.map(([name, price, term, features], index) => {

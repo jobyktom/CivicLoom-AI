@@ -60,8 +60,29 @@ After running `hostinger/phase3-prisma-auth-billing.sql`, set `AUTH_PRISMA_ADAPT
 - `src/lib/mock-data.ts`: demo report data for the MVP UI.
 - `src/lib/db.ts`: lazy Hostinger MySQL pool. The app falls back to demo data if database variables are missing.
 - `src/lib/prisma.ts`: generated Prisma client accessor for Phase 3 routes.
+- `src/lib/billing.ts`: Stripe subscription, billing status, usage limit, and runtime-safe billing schema helpers.
 - `src/app/api/reports/generate/route.ts`: Census-resolved report generation plus optional Hostinger MySQL persistence.
 - `src/app/api/reports/route.ts`: saved reports API backed by Hostinger MySQL with demo fallback.
 - `src/app/api/checkout/route.ts`: subscription Checkout Session creation.
+- `src/app/api/stripe/webhook/route.ts`: Stripe webhook receiver for subscription lifecycle updates.
+- `src/app/api/billing/status/route.ts`: current user plan and monthly report usage.
+- `src/app/api/billing/portal/route.ts`: Stripe customer portal session creation.
 
-Pricing is displayed in USD. Stripe checkout is intentionally left as a front-end placeholder for the next integration phase.
+Pricing is displayed in USD. Paid plans use hosted Stripe Checkout in subscription mode. Stripe webhooks update the local subscription table, and report generation checks usage server-side before spending Census/OpenAI calls.
+
+## Stripe webhook setup
+
+In Stripe, configure a webhook endpoint pointing to:
+
+```text
+https://YOUR_DOMAIN/api/stripe/webhook
+```
+
+Subscribe to:
+
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET`.
