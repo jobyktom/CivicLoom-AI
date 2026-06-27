@@ -136,11 +136,11 @@ export async function POST(request: NextRequest) {
 
         await tx.usageEvent.create({
           data: {
-          userId: user.id,
-          reportId: report.id,
-          eventType: "report_generated",
-          plan: usageCheck.billing.plan,
-          metadata: { businessType: report.businessType, locationName: report.locationName },
+            userId: user.id,
+            reportId: report.id,
+            eventType: "report_generated",
+            plan: usageCheck.billing.plan,
+            metadata: { businessType: report.businessType, locationName: report.locationName },
           },
         });
       });
