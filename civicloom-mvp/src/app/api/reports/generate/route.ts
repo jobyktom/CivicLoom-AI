@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Sign in to generate and save market reports." }, { status: 401 });
+    }
+
     const usageCheck = await assertCanGenerateReport(user?.id);
     if (!usageCheck.allowed) {
       return NextResponse.json({ error: usageCheck.error, billing: usageCheck.billing }, { status: 402 });
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
           "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,report_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
           [
             report.id,
-            user?.id || null,
+            user.id,
             report.businessType,
             report.locationName,
             report.geographyType,
@@ -120,7 +124,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({ details }),
         ]);
         await recordUsageEvent({
-          userId: user?.id,
+          userId: user.id,
           reportId: report.id,
           eventType: "report_generated",
           plan: usageCheck.billing.plan,

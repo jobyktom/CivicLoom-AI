@@ -116,15 +116,18 @@ function legacyDetails(row: ReportRow, ai: AiRow | undefined): ReportDetails {
   };
 }
 
-export async function loadReportById(id: string): Promise<Report | null> {
+export async function loadReportById(id: string, ownerUserId?: string | null): Promise<Report | null> {
   const db = getDbPool();
   if (!db) return { ...demoReport, id };
 
   await ensureBillingSchema();
 
   const [reportRows] = await db.execute(
-    "SELECT id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,report_json,created_at FROM reports WHERE id = ? LIMIT 1",
-    [id],
+    `SELECT id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,report_json,created_at
+     FROM reports
+     WHERE id = ? ${ownerUserId ? "AND user_id = ?" : ""}
+     LIMIT 1`,
+    ownerUserId ? [id, ownerUserId] : [id],
   );
   const row = (reportRows as ReportRow[])[0];
   if (!row) return null;

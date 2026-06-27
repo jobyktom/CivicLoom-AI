@@ -55,6 +55,14 @@ export default function NewReport() {
         body: JSON.stringify(Object.fromEntries(form)),
       });
       const payload = await response.json();
+      if (response.status === 401) {
+        router.push("/auth");
+        return;
+      }
+      if (response.status === 402) {
+        router.push("/pricing");
+        return;
+      }
       if (!response.ok) throw new Error(payload.error);
       localStorage.setItem(`civicloom-report-${payload.report.id}`, JSON.stringify(payload.report));
       router.push(`/report/${payload.report.id}`);

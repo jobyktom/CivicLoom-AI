@@ -33,9 +33,7 @@ export default async function Dashboard() {
               <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">
                 {user
                   ? `${user.name || user.email}, this is your saved report ledger. ${source === "mysql" ? "Reports are syncing with Hostinger MySQL." : "Demo records are showing until the database is available."}`
-                  : source === "mysql"
-                    ? "Showing saved reports across the workspace. Sign in to keep reports attached to your own account."
-                    : "Demo records are showing until database variables are configured."}
+                  : "Sign in to view your saved reports. Demo records are shown here until your account is connected."}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="h-11 bg-[#18324a] px-5 text-white hover:bg-[#102033]">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
+import { getCurrentUser } from "@/lib/auth";
 import { demoReport } from "@/lib/mock-data";
 import { calculateScoreBreakdown } from "@/lib/scoring";
 import { loadReportById } from "@/lib/report-loader";
@@ -120,7 +121,10 @@ async function renderPdf(report: Report) {
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const report = await loadReportById(id);
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Sign in to download this report." }, { status: 401 });
+
+  const report = await loadReportById(id, user.id);
   if (!report) return NextResponse.json({ error: "Report not found." }, { status: 404 });
 
   const pdf = await renderPdf(report);
