@@ -1,5 +1,6 @@
 import { getDbPool } from "@/lib/db";
 import type { AuthUser } from "@/lib/auth";
+import { getPrismaClient } from "@/lib/prisma";
 
 export type BusinessTemplate = {
   id: string;
@@ -65,27 +66,6 @@ export const defaultBusinessTemplates: BusinessTemplate[] = [
     },
   },
 ];
-
-type TemplateRow = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  assumptions: string | object | null;
-};
-
-type WatchlistRow = {
-  id: string;
-  business_type: string;
-  location_name: string;
-  geography_type: string;
-  state_code: string | null;
-  county_code: string | null;
-  place_code: string | null;
-  last_score: number | null;
-  last_checked_at: Date | null;
-  created_at: Date;
-};
 
 function parseAssumptions(value: unknown, fallback: BusinessTemplate["assumptions"]) {
   if (!value) return fallback;
@@ -153,12 +133,21 @@ export async function ensureValueAddSchema() {
 }
 
 export async function listBusinessTemplates(): Promise<{ templates: BusinessTemplate[]; source: "mysql" | "demo" }> {
-  const db = getDbPool();
-  if (!db) return { templates: defaultBusinessTemplates, source: "demo" };
+  const prisma = getPrismaClient();
+  if (!prisma) return { templates: defaultBusinessTemplates, source: "demo" };
   await ensureValueAddSchema();
 
-  const [rows] = await db.query("SELECT id,slug,name,description,assumptions FROM business_templates ORDER BY name ASC");
-  const templates = (rows as TemplateRow[]).map((row) => {
+  const rows = await prisma.businessTemplate.findMany({
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      description: true,
+      assumptions: true,
+    },
+  });
+  const templates = rows.map((row) => {
     const fallback = defaultBusinessTemplates.find((template) => template.id === row.id)?.assumptions || defaultBusinessTemplates[0].assumptions;
     return {
       id: row.id,
@@ -173,57 +162,74 @@ export async function listBusinessTemplates(): Promise<{ templates: BusinessTemp
 }
 
 export async function listWatchlist(user?: AuthUser | null): Promise<WatchlistLocation[]> {
-  const db = getDbPool();
-  if (!db || !user) return [];
+  const prisma = getPrismaClient();
+  if (!prisma || !user) return [];
   await ensureValueAddSchema();
 
-  const [rows] = await db.query(
-    "SELECT id,business_type,location_name,geography_type,state_code,county_code,place_code,last_score,last_checked_at,created_at FROM watchlist_locations WHERE user_id = ? ORDER BY created_at DESC LIMIT 25",
-    [user.id],
-  );
+  const rows = await prisma.watchlistLocation.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 25,
+    select: {
+      id: true,
+      businessType: true,
+      locationName: true,
+      geographyType: true,
+      stateCode: true,
+      countyCode: true,
+      placeCode: true,
+      lastScore: true,
+      lastCheckedAt: true,
+      createdAt: true,
+    },
+  });
 
-  return (rows as WatchlistRow[]).map((row) => ({
+  return rows.map((row) => ({
     id: row.id,
-    businessType: row.business_type,
-    locationName: row.location_name,
-    geographyType: row.geography_type,
-    stateCode: row.state_code,
-    countyCode: row.county_code,
-    placeCode: row.place_code,
-    lastScore: row.last_score,
-    lastCheckedAt: row.last_checked_at?.toISOString() || null,
-    createdAt: row.created_at.toISOString(),
+    businessType: row.businessType,
+    locationName: row.locationName,
+    geographyType: row.geographyType,
+    stateCode: row.stateCode,
+    countyCode: row.countyCode,
+    placeCode: row.placeCode,
+    lastScore: row.lastScore,
+    lastCheckedAt: row.lastCheckedAt?.toISOString() || null,
+    createdAt: row.createdAt.toISOString(),
   }));
 }
 
 export async function addWatchlistLocation(user: AuthUser, input: { businessType: string; locationName: string; geographyType?: string; stateCode?: string | null; countyCode?: string | null; placeCode?: string | null; lastScore?: number | null }) {
-  const db = getDbPool();
-  if (!db) throw new Error("Database is not configured.");
+  const prisma = getPrismaClient();
+  if (!prisma) throw new Error("Database is not configured.");
   await ensureValueAddSchema();
 
   const id = crypto.randomUUID();
-  await db.execute(
-    "INSERT INTO watchlist_locations (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,last_score,last_checked_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-    [
+  await prisma.watchlistLocation.create({
+    data: {
       id,
-      user.id,
-      input.businessType,
-      input.locationName,
-      input.geographyType || "county",
-      input.stateCode || null,
-      input.countyCode || null,
-      input.placeCode || null,
-      input.lastScore || null,
-      input.lastScore ? new Date() : null,
-    ],
-  );
+      userId: user.id,
+      businessType: input.businessType,
+      locationName: input.locationName,
+      geographyType: input.geographyType || "county",
+      stateCode: input.stateCode || null,
+      countyCode: input.countyCode || null,
+      placeCode: input.placeCode || null,
+      lastScore: input.lastScore || null,
+      lastCheckedAt: input.lastScore ? new Date() : null,
+    },
+  });
 
   return id;
 }
 
 export async function removeWatchlistLocation(user: AuthUser, id: string) {
-  const db = getDbPool();
-  if (!db) throw new Error("Database is not configured.");
+  const prisma = getPrismaClient();
+  if (!prisma) throw new Error("Database is not configured.");
   await ensureValueAddSchema();
-  await db.execute("DELETE FROM watchlist_locations WHERE id = ? AND user_id = ?", [id, user.id]);
+  await prisma.watchlistLocation.deleteMany({
+    where: {
+      id,
+      userId: user.id,
+    },
+  });
 }
