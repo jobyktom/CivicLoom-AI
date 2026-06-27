@@ -47,7 +47,7 @@ export default function Auth() {
   async function continueWithGoogle() {
     setLoading(true);
     setMessage("");
-    await signIn("google", { callbackUrl: "/dashboard" });
+    await signIn("google", { redirectTo: "/dashboard" });
   }
 
   async function submit(e: React.FormEvent) {
