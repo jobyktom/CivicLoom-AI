@@ -22,6 +22,7 @@ Open `http://localhost:3000`.
 - `AUTH_URL` is used by the Phase 3 Auth.js setup. In local development it should match your dev server URL.
 - `AUTH_TRUST_HOST=true` is recommended on Vercel/Hostinger-style deployments where Auth.js should trust the deployed host header.
 - `AUTH_PRISMA_ADAPTER=false` keeps Auth.js in safe JWT-session mode until the Phase 3 SQL has been applied. Set it to `true` after `accounts`, `sessions`, and `verification_tokens` exist.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google sign-in button. Google OAuth requires `AUTH_PRISMA_ADAPTER=true` so Auth.js can create/link users and accounts in MySQL.
 - Add Hostinger MySQL variables to persist reports. Use either `DATABASE_URL` or the separate `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables.
 - If your MySQL password contains special URL characters such as `@`, prefer the separate `DB_*` variables. If you use `DATABASE_URL`, encode `@` as `%40`.
 - Run `hostinger/schema.sql` in Hostinger phpMyAdmin before enabling persistence.
@@ -51,6 +52,20 @@ Do not run destructive Prisma migrations against the Hostinger database. Use the
 Auth.js is available at `/api/auth/*` with the credentials provider. It uses the existing `users.email` and `users.password_hash` records, so existing accounts can continue to sign in. During the transition, `src/lib/auth.ts` reads Auth.js sessions first and falls back to the old `civicloom_session` cookie for users who were already signed in before the migration.
 
 After running `hostinger/phase3-prisma-auth-billing.sql`, set `AUTH_PRISMA_ADAPTER=true` to enable the Prisma adapter tables for OAuth/session features.
+
+To enable Google authentication, create a Google OAuth web client and add this authorized redirect URI:
+
+```text
+https://YOUR_DOMAIN/api/auth/callback/google
+```
+
+For local development, also add:
+
+```text
+http://localhost:3000/api/auth/callback/google
+```
+
+Then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `AUTH_PRISMA_ADAPTER=true`.
 
 ## Architecture
 

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { getPrismaClient } from "@/lib/prisma";
@@ -13,6 +14,7 @@ type CredentialUser = {
 
 const prisma = getPrismaClient();
 const usePrismaAdapter = process.env.AUTH_PRISMA_ADAPTER === "true" && prisma;
+const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && usePrismaAdapter);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: usePrismaAdapter ? PrismaAdapter(prisma) : undefined,
@@ -23,6 +25,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth",
   },
   providers: [
+    ...(googleEnabled
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          }),
+        ]
+      : []),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },

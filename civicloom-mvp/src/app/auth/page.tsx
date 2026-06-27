@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Mode = "signin" | "signup";
+type ProviderMap = Record<string, { id: string; name: string; type: string }>;
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -15,7 +16,21 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/auth/providers")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((providers: ProviderMap | null) => setGoogleAvailable(Boolean(providers?.google)))
+      .catch(() => setGoogleAvailable(false));
+  }, []);
+
+  async function continueWithGoogle() {
+    setLoading(true);
+    setMessage("");
+    await signIn("google", { callbackUrl: "/dashboard" });
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,8 +88,28 @@ export default function Auth() {
           </button>
         </div>
 
+        {googleAvailable && (
+          <>
+            <Button
+              type="button"
+              onClick={continueWithGoogle}
+              disabled={loading}
+              variant="outline"
+              className="mt-6 w-full border-[#cfc7b9] bg-white text-[#102033] hover:bg-[#f7f4ed]"
+            >
+              <span className="mr-2 grid h-5 w-5 place-items-center rounded-full border border-[#ded8cb] text-xs font-bold text-[#285f8f]">G</span>
+              Continue with Google
+            </Button>
+            <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-[.16em] text-slate-400">
+              <span className="h-px flex-1 bg-[#eee8dc]" />
+              Or use email
+              <span className="h-px flex-1 bg-[#eee8dc]" />
+            </div>
+          </>
+        )}
+
         {mode === "signup" && (
-          <label className="mt-7 block text-sm font-medium text-[#102033]">
+          <label className={`${googleAvailable ? "mt-5" : "mt-7"} block text-sm font-medium text-[#102033]`}>
             Name
             <Input className="mt-2 border-[#cfc7b9]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
           </label>
