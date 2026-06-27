@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 import type { Pool } from "mysql2/promise";
+import { auth } from "@/auth";
 
 export type AuthUser = {
   id: string;
@@ -51,6 +52,15 @@ export async function clearSession() {
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
+  const session = await auth();
+  if (session?.user?.email) {
+    return {
+      id: session.user.id || "",
+      email: session.user.email,
+      name: session.user.name || null,
+    };
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(authCookieName)?.value;
   if (!token) return null;
@@ -66,4 +76,3 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 }
-

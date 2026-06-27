@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -22,13 +23,23 @@ export default function Auth() {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/auth/${mode}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      if (mode === "signup") {
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Authentication failed.");
+      }
+
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Authentication failed.");
+
+      if (result?.error) throw new Error("Invalid email or password.");
       router.push("/dashboard");
       router.refresh();
     } catch (error) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createSession, ensureAuthSchema } from "@/lib/auth";
+import { ensureAuthSchema } from "@/lib/auth";
 import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
 
 type UserRow = { id: string; email: string; name: string | null };
@@ -27,11 +27,9 @@ export async function POST(request: Request) {
     await db.execute("INSERT INTO users (id,email,name,password_hash) VALUES (?,?,?,?)", [id, email, name, passwordHash]);
 
     const user = { id, email, name };
-    await createSession(user);
     return NextResponse.json({ user });
   } catch (error) {
     console.error("Signup failed", error);
     return NextResponse.json({ error: getDatabaseErrorMessage(error) }, { status: 500 });
   }
 }
-
