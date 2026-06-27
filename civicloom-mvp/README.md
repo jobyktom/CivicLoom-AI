@@ -67,8 +67,13 @@ After running `hostinger/phase3-prisma-auth-billing.sql`, set `AUTH_PRISMA_ADAPT
 - `src/app/api/stripe/webhook/route.ts`: Stripe webhook receiver for subscription lifecycle updates.
 - `src/app/api/billing/status/route.ts`: current user plan and monthly report usage.
 - `src/app/api/billing/portal/route.ts`: Stripe customer portal session creation.
+- `src/app/api/templates/route.ts`: business-type templates used by the report builder.
+- `src/app/api/watchlist/route.ts`: signed-in user watchlist create/list API.
+- `src/lib/value-add.ts`: business template and watchlist service helpers.
 
 Pricing is displayed in USD. Paid plans use hosted Stripe Checkout in subscription mode. Stripe webhooks update the local subscription table, and report generation checks usage server-side before spending Census/OpenAI calls.
+
+Business templates and watchlists are additive Phase 3 value services. Templates help users start reports with business-specific assumptions. Watchlists let signed-in users save promising markets for future monitoring and alerts.
 
 ## Stripe webhook setup
 

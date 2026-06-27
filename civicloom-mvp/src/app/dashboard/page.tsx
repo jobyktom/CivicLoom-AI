@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getBillingStatus } from "@/lib/billing";
 import { listSavedReports } from "@/lib/report-list";
+import { listWatchlist } from "@/lib/value-add";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function Dashboard() {
   const user = await getCurrentUser();
   const { reports, source } = await listSavedReports(user?.id);
   const billing = await getBillingStatus(user?.id);
+  const watchlist = await listWatchlist(user);
   const averageScore = reports.length ? Math.round(reports.reduce((sum, report) => sum + report.opportunityScore, 0) / reports.length) : 0;
   const topReport = [...reports].sort((a, b) => b.opportunityScore - a.opportunityScore)[0];
 
@@ -128,6 +130,33 @@ export default async function Dashboard() {
                 <Link href="/report/new">Create report</Link>
               </Button>
             </div>
+          )}
+        </section>
+
+        <section className="mt-8 rounded-[24px] border border-[#d6cebf] bg-white p-6">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#285f8f]">Watchlist</p>
+              <h2 className="font-display mt-1 text-3xl font-semibold tracking-[-.03em] text-[#102033]">Markets to monitor</h2>
+            </div>
+            <p className="text-sm text-slate-500">{user ? `${watchlist.length} saved` : "Sign in to save markets"}</p>
+          </div>
+          {watchlist.length ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {watchlist.slice(0, 6).map((item) => (
+                <div key={item.id} className="rounded-2xl border border-[#eee8dc] bg-[#faf9f6] p-4">
+                  <p className="text-sm font-semibold text-[#102033]">{item.locationName}</p>
+                  <p className="mt-1 text-sm text-slate-500">{item.businessType}</p>
+                  <p className="mt-3 text-xs uppercase tracking-[.14em] text-slate-400">
+                    {item.lastScore ? `Last score ${item.lastScore}/100` : "Awaiting refresh"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-[#eee8dc] bg-[#faf9f6] p-5 text-sm leading-6 text-slate-600">
+              Save promising report locations to track them over time. Watchlists are the start of recurring market alerts.
+            </p>
           )}
         </section>
       </div>

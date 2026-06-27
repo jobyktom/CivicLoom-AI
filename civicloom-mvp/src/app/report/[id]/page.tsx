@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { demoReport } from "@/lib/mock-data";
 import { calculateScoreBreakdown } from "@/lib/scoring";
 import type { Report, ReportDetails } from "@/lib/types";
+import { WatchlistButton } from "./watchlist-button";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -67,12 +68,15 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#102033]">{report.businessType}</h1>
           </div>
-          <Button asChild variant="outline" className="border-[#bdb5a7] bg-white text-[#18324a] hover:bg-[#f1eee8]">
-            <a href={`/api/reports/${id}/pdf`} download>
-              <Download className="mr-2" />
-              Download PDF
-            </a>
-          </Button>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <Button asChild variant="outline" className="border-[#bdb5a7] bg-white text-[#18324a] hover:bg-[#f1eee8]">
+              <a href={`/api/reports/${id}/pdf`} download>
+                <Download className="mr-2" />
+                Download PDF
+              </a>
+            </Button>
+            <WatchlistButton report={report} />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
