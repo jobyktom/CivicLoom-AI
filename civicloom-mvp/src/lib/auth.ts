@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
-import type { Pool } from "mysql2/promise";
 import { auth } from "@/auth";
+import { getDbPool } from "@/lib/db";
 
 export type AuthUser = {
   id: string;
@@ -19,13 +19,18 @@ function getAuthSecret() {
   return new TextEncoder().encode(secret || "dev-only-civicloom-auth-secret-change-me");
 }
 
-export async function ensureAuthSchema(db: Pool) {
+export async function ensureAuthSchema() {
+  const db = getDbPool();
+  if (!db) return false;
+
   try {
     await db.execute("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255) NULL AFTER name");
   } catch (error) {
     const err = error as { code?: string };
     if (err.code !== "ER_DUP_FIELDNAME") throw error;
   }
+
+  return true;
 }
 
 export async function createSession(user: AuthUser) {

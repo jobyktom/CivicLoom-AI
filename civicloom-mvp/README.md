@@ -32,7 +32,7 @@ Open `http://localhost:3000`.
 
 ## Prisma
 
-Prisma is the Phase 3 database layer. The schema maps to the existing Hostinger MySQL tables and includes upcoming Auth.js, Stripe subscription, usage, business-template, and watchlist tables.
+Prisma is the Phase 3 database layer. The schema maps to the existing Hostinger MySQL tables and includes Auth.js, Stripe subscription, usage, business-template, and watchlist tables.
 
 Useful commands:
 
@@ -58,11 +58,11 @@ After running `hostinger/phase3-prisma-auth-billing.sql`, set `AUTH_PRISMA_ADAPT
 - `src/lib/scoring.ts`: transparent 35/25/25/15 weighted opportunity score plus component breakdown.
 - `src/lib/ai.ts`: structured OpenAI report generation with safe fallback.
 - `src/lib/mock-data.ts`: demo report data for the MVP UI.
-- `src/lib/db.ts`: lazy Hostinger MySQL pool. The app falls back to demo data if database variables are missing.
-- `src/lib/prisma.ts`: generated Prisma client accessor for Phase 3 routes.
-- `src/lib/billing.ts`: Stripe subscription, billing status, usage limit, and runtime-safe billing schema helpers.
-- `src/app/api/reports/generate/route.ts`: Census-resolved report generation plus optional Hostinger MySQL persistence.
-- `src/app/api/reports/route.ts`: saved reports API backed by Hostinger MySQL with demo fallback.
+- `src/lib/db.ts`: lazy Hostinger MySQL pool used for safe additive schema checks and database health.
+- `src/lib/prisma.ts`: generated Prisma client accessor for Auth.js, reports, billing, templates, and watchlists.
+- `src/lib/billing.ts`: Stripe subscription, billing status, usage limit, and runtime-safe billing schema helpers backed by Prisma for normal records.
+- `src/app/api/reports/generate/route.ts`: Census-resolved report generation with Prisma transaction persistence.
+- `src/app/api/reports/route.ts`: signed-in saved reports API backed by Prisma with demo fallback for previews.
 - `src/app/api/checkout/route.ts`: subscription Checkout Session creation.
 - `src/app/api/stripe/webhook/route.ts`: Stripe webhook receiver for subscription lifecycle updates.
 - `src/app/api/billing/status/route.ts`: current user plan and monthly report usage.

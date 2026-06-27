@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { ensureAuthSchema } from "@/lib/auth";
-import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
+import { getDatabaseErrorMessage } from "@/lib/db";
 import { getPrismaClient } from "@/lib/prisma";
 
 export async function POST(request: Request) {
-  const db = getDbPool();
   const prisma = getPrismaClient();
-  if (!db || !prisma) return NextResponse.json({ error: "Database is not configured." }, { status: 500 });
+  if (!prisma) return NextResponse.json({ error: "Database is not configured." }, { status: 500 });
 
   try {
-    await ensureAuthSchema(db);
+    await ensureAuthSchema();
     const body = await request.json();
     const email = String(body.email || "").trim().toLowerCase();
     const name = String(body.name || "").trim() || null;
