@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { getDbPool } from "@/lib/db";
 import type { AuthUser } from "@/lib/auth";
+import { getPrismaClient } from "@/lib/prisma";
 
 export type PlanName = "free" | "starter" | "pro" | "agency";
 
@@ -29,17 +30,6 @@ export const planConfigs: Record<PlanName, PlanConfig> = {
   pro: { name: "pro", label: "Pro", reportLimit: 20, priceEnv: "STRIPE_PRO_PRICE_ID" },
   agency: { name: "agency", label: "Agency", reportLimit: 100, priceEnv: "STRIPE_AGENCY_PRICE_ID" },
 };
-
-type SubscriptionRow = {
-  plan: PlanName | string;
-  status: string | null;
-  report_limit: number | null;
-  current_period_start: Date | string | null;
-  current_period_end: Date | string | null;
-};
-
-type CountRow = { count: number | bigint };
-type CustomerRow = { stripe_customer_id: string | null };
 
 export function normalizePlan(plan: unknown): PlanName {
   const value = String(plan || "").toLowerCase();
@@ -138,19 +128,25 @@ export async function ensureBillingSchema() {
 }
 
 export async function getUserStripeCustomerId(userId: string) {
-  const db = getDbPool();
-  if (!db) return null;
+  const prisma = getPrismaClient();
+  if (!prisma) return null;
   await ensureBillingSchema();
 
-  const [rows] = await db.execute("SELECT stripe_customer_id FROM users WHERE id = ? LIMIT 1", [userId]);
-  return ((rows as CustomerRow[])[0]?.stripe_customer_id || null) as string | null;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true },
+  });
+  return user?.stripeCustomerId || null;
 }
 
 export async function setUserStripeCustomerId(userId: string, customerId: string) {
-  const db = getDbPool();
-  if (!db) return;
+  const prisma = getPrismaClient();
+  if (!prisma) return;
   await ensureBillingSchema();
-  await db.execute("UPDATE users SET stripe_customer_id = ? WHERE id = ?", [customerId, userId]);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { stripeCustomerId: customerId },
+  });
 }
 
 export async function getOrCreateStripeCustomer(user: AuthUser) {
@@ -181,27 +177,38 @@ export async function getBillingStatus(userId?: string | null): Promise<BillingS
     currentPeriodStart: start.toISOString(),
     currentPeriodEnd: end.toISOString(),
   };
-  const db = getDbPool();
-  if (!db || !userId) return fallback;
+  const prisma = getPrismaClient();
+  if (!prisma || !userId) return fallback;
   await ensureBillingSchema();
 
-  const [subscriptionRows] = await db.execute(
-    "SELECT plan,status,report_limit,current_period_start,current_period_end FROM subscriptions WHERE user_id = ? ORDER BY updated_at DESC, created_at DESC LIMIT 1",
-    [userId],
-  );
-  const subscription = (subscriptionRows as SubscriptionRow[])[0];
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      plan: true,
+      status: true,
+      reportLimit: true,
+      currentPeriodStart: true,
+      currentPeriodEnd: true,
+    },
+  });
   const plan = normalizePlan(subscription?.plan);
   const active = subscription && ["active", "trialing"].includes(String(subscription.status || ""));
   const config = active ? planConfigs[plan] : planConfigs.free;
-  const periodStart = subscription?.current_period_start ? new Date(subscription.current_period_start) : start;
-  const periodEnd = subscription?.current_period_end ? new Date(subscription.current_period_end) : end;
+  const periodStart = subscription?.currentPeriodStart ? new Date(subscription.currentPeriodStart) : start;
+  const periodEnd = subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : end;
 
-  const [usageRows] = await db.execute(
-    "SELECT COUNT(*) AS count FROM usage_events WHERE user_id = ? AND event_type = 'report_generated' AND created_at >= ? AND created_at < ?",
-    [userId, periodStart, periodEnd],
-  );
-  const reportsUsed = Number((usageRows as CountRow[])[0]?.count || 0);
-  const reportLimit = subscription?.report_limit || config.reportLimit;
+  const reportsUsed = await prisma.usageEvent.count({
+    where: {
+      userId,
+      eventType: "report_generated",
+      createdAt: {
+        gte: periodStart,
+        lt: periodEnd,
+      },
+    },
+  });
+  const reportLimit = subscription?.reportLimit || config.reportLimit;
   const customerId = await getUserStripeCustomerId(userId);
 
   return {
@@ -231,22 +238,24 @@ export async function assertCanGenerateReport(userId?: string | null) {
 }
 
 export async function recordUsageEvent(input: { userId?: string | null; reportId?: string | null; eventType: string; plan?: PlanName; metadata?: unknown }) {
-  const db = getDbPool();
-  if (!db || !input.userId) return;
+  const prisma = getPrismaClient();
+  if (!prisma || !input.userId) return;
   await ensureBillingSchema();
 
-  await db.execute("INSERT INTO usage_events (user_id,report_id,event_type,plan,metadata) VALUES (?,?,?,?,?)", [
-    input.userId,
-    input.reportId || null,
-    input.eventType,
-    input.plan || null,
-    input.metadata ? JSON.stringify(input.metadata) : null,
-  ]);
+  await prisma.usageEvent.create({
+    data: {
+      userId: input.userId,
+      reportId: input.reportId || null,
+      eventType: input.eventType,
+      plan: input.plan || null,
+      metadata: input.metadata === undefined ? undefined : (input.metadata as never),
+    },
+  });
 }
 
 export async function upsertSubscriptionFromStripe(subscription: Stripe.Subscription) {
-  const db = getDbPool();
-  if (!db) return;
+  const prisma = getPrismaClient();
+  if (!prisma) return;
   await ensureBillingSchema();
 
   const userId = String(subscription.metadata?.userId || "");
@@ -267,29 +276,28 @@ export async function upsertSubscriptionFromStripe(subscription: Stripe.Subscrip
   const periodStart = periodSource.current_period_start || itemPeriodSource?.current_period_start || Math.floor(Date.now() / 1000);
   const periodEnd = periodSource.current_period_end || itemPeriodSource?.current_period_end || Math.floor(getCurrentBillingPeriod().end.getTime() / 1000);
 
-  await db.execute(
-    `INSERT INTO subscriptions
-      (id,user_id,stripe_subscription_id,stripe_price_id,plan,status,report_limit,current_period_start,current_period_end,cancel_at_period_end)
-     VALUES (?,?,?,?,?,?,?,?,?,?)
-     ON DUPLICATE KEY UPDATE
-      stripe_price_id = VALUES(stripe_price_id),
-      plan = VALUES(plan),
-      status = VALUES(status),
-      report_limit = VALUES(report_limit),
-      current_period_start = VALUES(current_period_start),
-      current_period_end = VALUES(current_period_end),
-      cancel_at_period_end = VALUES(cancel_at_period_end)`,
-    [
-      subscription.id,
+  await prisma.subscription.upsert({
+    where: { id: subscription.id },
+    create: {
+      id: subscription.id,
       userId,
-      subscription.id,
-      priceId,
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceId,
       plan,
-      subscription.status,
-      config.reportLimit,
-      new Date(periodStart * 1000),
-      new Date(periodEnd * 1000),
-      subscription.cancel_at_period_end,
-    ],
-  );
+      status: subscription.status,
+      reportLimit: config.reportLimit,
+      currentPeriodStart: new Date(periodStart * 1000),
+      currentPeriodEnd: new Date(periodEnd * 1000),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    },
+    update: {
+      stripePriceId: priceId,
+      plan,
+      status: subscription.status,
+      reportLimit: config.reportLimit,
+      currentPeriodStart: new Date(periodStart * 1000),
+      currentPeriodEnd: new Date(periodEnd * 1000),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    },
+  });
 }
