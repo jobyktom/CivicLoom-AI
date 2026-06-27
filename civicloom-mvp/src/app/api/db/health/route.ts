@@ -5,6 +5,25 @@ import { getPrismaClient } from "@/lib/prisma";
 const REQUIRED_AUTH_TABLES = ["users", "accounts", "sessions", "verification_tokens"] as const;
 const REQUIRED_USER_COLUMNS = ["id", "email", "name", "password_hash", "email_verified", "image"] as const;
 
+function getAuthConfigHealth() {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
+  const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "";
+
+  return {
+    googleProviderConfigured: Boolean(googleClientId && googleClientSecret),
+    googleClientIdLooksValid: googleClientId.endsWith(".apps.googleusercontent.com"),
+    googleClientIdLength: googleClientId.length,
+    googleClientSecretConfigured: Boolean(googleClientSecret),
+    authSecretConfigured: Boolean(authSecret),
+    authSecretLooksLongEnough: authSecret.length >= 32,
+    authUrlConfigured: Boolean(authUrl),
+    authUrlLooksValid: authUrl.startsWith("https://") || authUrl.startsWith("http://localhost"),
+    prismaAdapterEnabled: process.env.AUTH_PRISMA_ADAPTER === "true",
+  };
+}
+
 export async function GET() {
   const db = getDbPool();
   const configMode = getDbConfigMode();
@@ -58,11 +77,7 @@ export async function GET() {
       authTables,
       hasAuthUserColumns,
       authUserColumns,
-      authConfig: {
-        googleProviderConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-        authSecretConfigured: Boolean(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
-        prismaAdapterEnabled: process.env.AUTH_PRISMA_ADAPTER === "true",
-      },
+      authConfig: getAuthConfigHealth(),
       prismaConnected: prismaReportCount !== null,
       prismaReportCount,
       message:
