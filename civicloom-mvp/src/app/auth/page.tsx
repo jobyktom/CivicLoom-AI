@@ -47,34 +47,7 @@ export default function Auth() {
   async function continueWithGoogle() {
     setLoading(true);
     setMessage("");
-
-    try {
-      const response = await fetch("/api/auth/csrf");
-      const payload = (await response.json()) as { csrfToken?: string };
-      if (!response.ok || !payload.csrfToken) throw new Error("Unable to start Google sign-in.");
-
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/api/auth/signin/google";
-
-      const csrfInput = document.createElement("input");
-      csrfInput.type = "hidden";
-      csrfInput.name = "csrfToken";
-      csrfInput.value = payload.csrfToken;
-      form.appendChild(csrfInput);
-
-      const callbackInput = document.createElement("input");
-      callbackInput.type = "hidden";
-      callbackInput.name = "callbackUrl";
-      callbackInput.value = `${window.location.origin}/dashboard`;
-      form.appendChild(callbackInput);
-
-      document.body.appendChild(form);
-      form.submit();
-    } catch (error) {
-      setLoading(false);
-      setMessage(error instanceof Error ? error.message : "Unable to start Google sign-in.");
-    }
+    await signIn("google", { redirectTo: "/dashboard" });
   }
 
   async function submit(e: React.FormEvent) {
