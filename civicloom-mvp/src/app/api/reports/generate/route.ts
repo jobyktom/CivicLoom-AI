@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCensusMetrics, resolveLocationGeography } from "@/lib/census";
 import { calculateOpportunityScore, calculateScoreBreakdown } from "@/lib/scoring";
 import { demoReport } from "@/lib/mock-data";
-import { getDatabaseErrorMessage, getDbPool } from "@/lib/db";
+import { getDatabaseErrorMessage } from "@/lib/db";
 import { generateReportNarrative } from "@/lib/ai";
 import { getCurrentUser } from "@/lib/auth";
-import { assertCanGenerateReport, ensureBillingSchema, recordUsageEvent } from "@/lib/billing";
+import { assertCanGenerateReport, ensureBillingSchema } from "@/lib/billing";
+import { getPrismaClient } from "@/lib/prisma";
 
 const stateCodes: Record<string, string> = {
   TEXAS: "48",
@@ -78,65 +79,77 @@ export async function POST(request: NextRequest) {
       recommendation: details.finalRecommendation,
       details,
     };
-    const db = getDbPool();
+    const prisma = getPrismaClient();
+    if (!prisma) {
+      return NextResponse.json({ error: "Database is not configured." }, { status: 500 });
+    }
 
-    if (db) {
-      try {
-        await ensureBillingSchema();
-        await db.execute(
-          "INSERT INTO reports (id,user_id,business_type,location_name,geography_type,state_code,county_code,place_code,radius,target_customer,report_type,opportunity_score,ai_summary,risk_summary,recommendation,report_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-          [
-            report.id,
-            user.id,
-            report.businessType,
-            report.locationName,
-            report.geographyType,
-            report.stateCode || null,
-            report.countyCode || null,
-            report.placeCode || null,
-            report.radius,
-            report.targetCustomer,
-            report.reportType,
-            report.opportunityScore,
-            report.aiSummary,
-            report.riskSummary,
-            report.recommendation,
-            JSON.stringify({ details, scoreBreakdown: report.scoreBreakdown, dataSource: report.dataSource }),
-          ],
-        );
-        await db.query("INSERT INTO census_metrics (report_id,metric_name,metric_value,source_year) VALUES ?", [
-          Object.entries(report.metrics).map(([metricName, metricValue]) => [report.id, metricName, metricValue, 2023]),
-        ]);
-        await db.execute(
-          "INSERT INTO ai_summaries (report_id,executive_summary,risks,ideal_customer,marketing_angle,recommendation,structured_json) VALUES (?,?,?,?,?,?,?)",
-          [
-          report.id,
-          details.executiveSummary,
-          JSON.stringify(details.risks),
-          details.idealCustomer,
-          details.marketingAngle,
-          JSON.stringify({
-            finalRecommendation: details.finalRecommendation,
-            whyThisLocationWorks: details.whyThisLocationWorks,
-            suggestedNextSteps: details.suggestedNextSteps,
-            demandDrivers: details.demandDrivers,
-          }),
-          JSON.stringify({ details }),
-        ]);
-        await recordUsageEvent({
+    try {
+      await ensureBillingSchema();
+      await prisma.$transaction(async (tx) => {
+        await tx.report.create({
+          data: {
+            id: report.id,
+            userId: user.id,
+            businessType: report.businessType,
+            locationName: report.locationName,
+            geographyType: report.geographyType,
+            stateCode: report.stateCode || null,
+            countyCode: report.countyCode || null,
+            placeCode: report.placeCode || null,
+            radius: report.radius,
+            targetCustomer: report.targetCustomer,
+            reportType: report.reportType,
+            opportunityScore: report.opportunityScore,
+            aiSummary: report.aiSummary,
+            riskSummary: report.riskSummary,
+            recommendation: report.recommendation,
+            reportJson: { details, scoreBreakdown: report.scoreBreakdown, dataSource: report.dataSource },
+          },
+        });
+
+        await tx.censusMetric.createMany({
+          data: Object.entries(report.metrics).map(([metricName, metricValue]) => ({
+            reportId: report.id,
+            metricName,
+            metricValue: Number(metricValue),
+            sourceYear: 2023,
+          })),
+        });
+
+        await tx.aiSummary.create({
+          data: {
+            reportId: report.id,
+            executiveSummary: details.executiveSummary,
+            risks: JSON.stringify(details.risks),
+            idealCustomer: details.idealCustomer,
+            marketingAngle: details.marketingAngle,
+            recommendation: JSON.stringify({
+              finalRecommendation: details.finalRecommendation,
+              whyThisLocationWorks: details.whyThisLocationWorks,
+              suggestedNextSteps: details.suggestedNextSteps,
+              demandDrivers: details.demandDrivers,
+            }),
+            structuredJson: { details },
+          },
+        });
+
+        await tx.usageEvent.create({
+          data: {
           userId: user.id,
           reportId: report.id,
           eventType: "report_generated",
           plan: usageCheck.billing.plan,
           metadata: { businessType: report.businessType, locationName: report.locationName },
+          },
         });
-      } catch (error) {
-        console.error("Report database save failed", error);
-        return NextResponse.json({ error: getDatabaseErrorMessage(error), report, saved: false }, { status: 500 });
-      }
+      });
+    } catch (error) {
+      console.error("Report database save failed", error);
+      return NextResponse.json({ error: getDatabaseErrorMessage(error), report, saved: false }, { status: 500 });
     }
 
-    return NextResponse.json({ report, source: metrics ? "census" : "demo", saved: Boolean(db) });
+    return NextResponse.json({ report, source: metrics ? "census" : "demo", saved: true });
   } catch (error) {
     console.error("Report generation failed", error);
     return NextResponse.json({ error: "Unable to generate report. Please check the location and try again." }, { status: 500 });
