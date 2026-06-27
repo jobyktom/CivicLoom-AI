@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/lib/auth";
 
 function displayName(user: AuthUser) {

@@ -20,15 +20,15 @@ function getDetails(report: Report): ReportDetails {
 
 export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [report, setReport] = useState<Report>(demoReport);
+  const [report, setReport] = useState<Report>(() => {
+    if (typeof window === "undefined") return demoReport;
+
+    const saved = localStorage.getItem(`civicloom-report-${id}`);
+    return saved ? JSON.parse(saved) : demoReport;
+  });
 
   useEffect(() => {
     let active = true;
-    const saved = localStorage.getItem(`civicloom-report-${id}`);
-
-    if (saved) {
-      setReport(JSON.parse(saved));
-    }
 
     fetch(`/api/reports/${id}`)
       .then((res) => (res.ok ? res.json() : null))

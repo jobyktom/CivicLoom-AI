@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveLocationGeography(String(body.location || ""));
     const state = resolved?.state || stateCodes[stateName?.toUpperCase()] || stateCodes[stateName] || "48";
     let metrics = null;
-    let county: string | undefined = resolved?.county;
-    let place: string | undefined = resolved?.place;
+    const county: string | undefined = resolved?.county;
+    const place: string | undefined = resolved?.place;
 
     if (county || place) {
       metrics = await getCensusMetrics({ state, county, place });

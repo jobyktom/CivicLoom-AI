@@ -42,7 +42,7 @@ export default function Auth() {
         if (payload?.user) router.replace("/dashboard");
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   async function continueWithGoogle() {
     setLoading(true);
