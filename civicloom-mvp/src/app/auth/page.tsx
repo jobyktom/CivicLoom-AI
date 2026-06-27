@@ -35,6 +35,13 @@ export default function Auth() {
       .then((response) => (response.ok ? response.json() : null))
       .then((providers: ProviderMap | null) => setGoogleAvailable(Boolean(providers?.google)))
       .catch(() => setGoogleAvailable(false));
+
+    fetch("/api/auth/me")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload?.user) router.replace("/dashboard");
+      })
+      .catch(() => {});
   }, []);
 
   async function continueWithGoogle() {
