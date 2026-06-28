@@ -28,7 +28,6 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
-  const [csrfToken, setCsrfToken] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -36,11 +35,6 @@ export default function Auth() {
       .then((response) => (response.ok ? response.json() : null))
       .then((providers: ProviderMap | null) => setGoogleAvailable(Boolean(providers?.google)))
       .catch(() => setGoogleAvailable(false));
-
-    fetch("/api/auth/csrf")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { csrfToken?: string } | null) => setCsrfToken(payload?.csrfToken || ""))
-      .catch(() => setCsrfToken(""));
 
     fetch("/api/auth/me")
       .then((response) => (response.ok ? response.json() : null))
@@ -108,12 +102,10 @@ export default function Auth() {
 
         {googleAvailable && (
           <>
-            <form method="post" action="/api/auth/signin/google">
-              <input type="hidden" name="csrfToken" value={csrfToken} />
-              <input type="hidden" name="callbackUrl" value="/dashboard" />
+            <form method="post" action="/api/auth/google/start">
               <Button
                 type="submit"
-                disabled={loading || !csrfToken}
+                disabled={loading}
                 variant="outline"
                 className="mt-6 h-11 w-full border-[#cfc7b9] bg-white text-[15px] font-semibold text-[#102033] shadow-sm transition hover:border-[#b8ad9d] hover:bg-[#f7f4ed]"
               >
