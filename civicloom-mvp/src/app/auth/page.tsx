@@ -28,6 +28,7 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -36,6 +37,11 @@ export default function Auth() {
       .then((providers: ProviderMap | null) => setGoogleAvailable(Boolean(providers?.google)))
       .catch(() => setGoogleAvailable(false));
 
+    fetch("/api/auth/csrf")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { csrfToken?: string } | null) => setCsrfToken(payload?.csrfToken || ""))
+      .catch(() => setCsrfToken(""));
+
     fetch("/api/auth/me")
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
@@ -43,12 +49,6 @@ export default function Auth() {
       })
       .catch(() => {});
   }, [router]);
-
-  async function continueWithGoogle() {
-    setLoading(true);
-    setMessage("");
-    await signIn("google", { redirectTo: "/dashboard" });
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +84,7 @@ export default function Auth() {
 
   return (
     <main className="grid min-h-[calc(100vh-140px)] place-items-center bg-[#faf9f6] px-6 py-12">
-      <form onSubmit={submit} className="w-full max-w-md rounded-[22px] border border-[#d6cebf] bg-white p-8 shadow-[0_14px_36px_rgba(16,32,51,.06)]">
+      <div className="w-full max-w-md rounded-[22px] border border-[#d6cebf] bg-white p-8 shadow-[0_14px_36px_rgba(16,32,51,.06)]">
         <p className="text-sm font-bold uppercase tracking-[.18em] text-[#285f8f]">CivicLoom account</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#102033]">{mode === "signin" ? "Sign in" : "Create your account"}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">Save reports to your Hostinger MySQL workspace and keep your dashboard organized.</p>
@@ -108,16 +108,19 @@ export default function Auth() {
 
         {googleAvailable && (
           <>
-            <Button
-              type="button"
-              onClick={continueWithGoogle}
-              disabled={loading}
-              variant="outline"
-              className="mt-6 h-11 w-full border-[#cfc7b9] bg-white text-[15px] font-semibold text-[#102033] shadow-sm transition hover:border-[#b8ad9d] hover:bg-[#f7f4ed]"
-            >
-              <GoogleMark />
-              <span className="ml-3">Continue with Google</span>
-            </Button>
+            <form method="post" action="/api/auth/signin/google">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
+              <input type="hidden" name="callbackUrl" value="/dashboard" />
+              <Button
+                type="submit"
+                disabled={loading || !csrfToken}
+                variant="outline"
+                className="mt-6 h-11 w-full border-[#cfc7b9] bg-white text-[15px] font-semibold text-[#102033] shadow-sm transition hover:border-[#b8ad9d] hover:bg-[#f7f4ed]"
+              >
+                <GoogleMark />
+                <span className="ml-3">Continue with Google</span>
+              </Button>
+            </form>
             <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-[.16em] text-slate-400">
               <span className="h-px flex-1 bg-[#eee8dc]" />
               Or use email
@@ -126,28 +129,30 @@ export default function Auth() {
           </>
         )}
 
-        {mode === "signup" && (
-          <label className={`${googleAvailable ? "mt-5" : "mt-7"} block text-sm font-medium text-[#102033]`}>
-            Name
-            <Input className="mt-2 border-[#cfc7b9]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+        <form onSubmit={submit}>
+          {mode === "signup" && (
+            <label className={`${googleAvailable ? "mt-5" : "mt-7"} block text-sm font-medium text-[#102033]`}>
+              Name
+              <Input className="mt-2 border-[#cfc7b9]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+            </label>
+          )}
+
+          <label className={`${mode === "signup" ? "mt-5" : "mt-7"} block text-sm font-medium text-[#102033]`}>
+            Email
+            <Input className="mt-2 border-[#cfc7b9]" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
-        )}
+          <label className="mt-5 block text-sm font-medium text-[#102033]">
+            Password
+            <Input className="mt-2 border-[#cfc7b9]" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
+          </label>
 
-        <label className={`${mode === "signup" ? "mt-5" : "mt-7"} block text-sm font-medium text-[#102033]`}>
-          Email
-          <Input className="mt-2 border-[#cfc7b9]" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label className="mt-5 block text-sm font-medium text-[#102033]">
-          Password
-          <Input className="mt-2 border-[#cfc7b9]" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
-        </label>
+          {message && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{message}</p>}
 
-        {message && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{message}</p>}
-
-        <Button disabled={loading} className="mt-6 w-full bg-[#18324a] text-white hover:bg-[#102033]">
-          {loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
-        </Button>
-      </form>
+          <Button disabled={loading} className="mt-6 w-full bg-[#18324a] text-white hover:bg-[#102033]">
+            {loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }
